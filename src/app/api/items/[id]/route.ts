@@ -1,32 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getItemById, deleteItem } from '@/lib/db';
-import { decrypt, canDecrypt } from '@/lib/tlock';
+import { canDecrypt } from '@/lib/tlock';
+import { decryptLayers } from '@/lib/decryption';
 
 interface RouteParams {
     params: Promise<{ id: string }>;
-}
-
-// Recursively decrypt layers
-async function decryptLayers(ciphertext: string, layerCount: number): Promise<Buffer | null> {
-    let data: Buffer | null = null;
-    let currentCiphertext = ciphertext;
-
-    for (let i = 0; i < layerCount; i++) {
-        const decrypted = await decrypt(currentCiphertext);
-        if (!decrypted) {
-            return null; // Not ready to decrypt this layer
-        }
-
-        if (i < layerCount - 1) {
-            // More layers to go, the decrypted data is another ciphertext
-            currentCiphertext = decrypted.toString('utf-8');
-        } else {
-            // Final layer, this is the actual data
-            data = decrypted;
-        }
-    }
-
-    return data;
 }
 
 // GET /api/items/[id] - Get item with decryption attempt

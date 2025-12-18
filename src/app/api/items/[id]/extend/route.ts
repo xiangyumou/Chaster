@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getItemById, updateItemEncryption } from '@/lib/db';
-import { encrypt } from '@/lib/tlock';
+import { encrypt, canDecrypt } from '@/lib/tlock';
+import { decryptLayers } from '@/lib/decryption';
 
 interface RouteParams {
     params: Promise<{ id: string }>;
@@ -23,18 +24,29 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return NextResponse.json({ error: 'Item not found' }, { status: 404 });
         }
 
-        // Check if item is still locked
-        if (Date.now() >= item.decrypt_at) {
-            return NextResponse.json({ error: 'Cannot extend already unlocked item' }, { status: 400 });
+        // Determine what data to encrypt
+        let dataToEncrypt: Buffer;
+        const isUnlocked = canDecrypt(item.decrypt_at);
+
+        if (isUnlocked) {
+            // Item is unlocked - decrypt all layers to get plaintext, then re-encrypt
+            const decryptedData = await decryptLayers(item.encrypted_data, item.layer_count);
+
+            if (!decryptedData) {
+                return NextResponse.json({ error: 'Failed to decrypt unlocked item' }, { status: 500 });
+            }
+
+            dataToEncrypt = decryptedData;
+        } else {
+            // Item is still locked - re-encrypt the current ciphertext (adds another layer)
+            dataToEncrypt = Buffer.from(item.encrypted_data, 'utf-8');
         }
 
-        // Re-encrypt the current ciphertext with a new timelock
-        // New decrypt time = original decrypt time + minutes
-        const newDecryptAt = new Date(item.decrypt_at + minutes * 60 * 1000);
-        const ciphertextBuffer = Buffer.from(item.encrypted_data, 'utf-8');
+        // New decrypt time = current time + minutes
+        const newDecryptAt = new Date(Date.now() + minutes * 60 * 1000);
 
         const { ciphertext: newCiphertext, roundNumber: newRoundNumber } = await encrypt(
-            ciphertextBuffer,
+            dataToEncrypt,
             newDecryptAt
         );
 
