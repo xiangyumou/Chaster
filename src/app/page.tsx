@@ -1,65 +1,103 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import Sidebar from '@/components/Sidebar';
+import AddModal from '@/components/AddModal';
+import ContentView from '@/components/ContentView';
+import { ItemListView } from '@/lib/db';
 
 export default function Home() {
+  const [items, setItems] = useState<ItemListView[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [lastDuration, setLastDuration] = useState(720);
+  const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const fetchItems = useCallback(async () => {
+    try {
+      const response = await fetch('/api/items');
+      const data = await response.json();
+      setItems(data.items || []);
+      setLastDuration(data.lastDuration || 720);
+    } catch (error) {
+      console.error('Error fetching items:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchItems();
+
+    // Refresh items periodically to update unlock status
+    const interval = setInterval(fetchItems, 30000);
+    return () => clearInterval(interval);
+  }, [fetchItems]);
+
+  const handleAddSubmit = async (formData: FormData) => {
+    const response = await fetch('/api/items', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      // Prepend new item to show at top (list is sorted DESC)
+      setItems((prev) => [data.item, ...prev]);
+      setSelectedId(data.item.id);
+
+      // Update last duration
+      const newDuration = parseInt(formData.get('durationMinutes') as string);
+      setLastDuration(newDuration);
+    }
+  };
+
+  const handleDelete = (id: string) => {
+    setItems((prev) => prev.filter((item) => item.id !== id));
+    if (selectedId === id) {
+      setSelectedId(null);
+    }
+  };
+
+  const handleSelectItem = (id: string) => {
+    setSelectedId(id);
+    // Close sidebar on mobile after selecting item
+    setSidebarOpen(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
+        <div className="spinner"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="app-container">
+      <Sidebar
+        items={items}
+        selectedId={selectedId}
+        onSelectItem={handleSelectItem}
+        onAddClick={() => setShowAddModal(true)}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      <ContentView
+        selectedId={selectedId}
+        onDelete={handleDelete}
+        onItemUpdated={fetchItems}
+        onMenuClick={() => setSidebarOpen(true)}
+      />
+
+      <AddModal
+        isOpen={showAddModal}
+        defaultDuration={lastDuration}
+        onClose={() => setShowAddModal(false)}
+        onSubmit={handleAddSubmit}
+      />
     </div>
   );
 }

@@ -1,0 +1,83 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getAllItems, createItem, getLastDuration, setLastDuration } from '@/lib/db';
+import { encrypt, getRoundForTime } from '@/lib/tlock';
+import { v4 as uuidv4 } from 'uuid';
+
+// GET /api/items - List all items
+export async function GET() {
+    try {
+        const items = getAllItems();
+        const lastDuration = getLastDuration();
+        return NextResponse.json({ items, lastDuration });
+    } catch (error) {
+        console.error('Error fetching items:', error);
+        return NextResponse.json({ error: 'Failed to fetch items' }, { status: 500 });
+    }
+}
+
+// POST /api/items - Create new encrypted item
+export async function POST(request: NextRequest) {
+    try {
+        const formData = await request.formData();
+        const type = formData.get('type') as 'text' | 'image';
+        const durationMinutes = parseInt(formData.get('durationMinutes') as string, 10);
+
+        if (!type || !durationMinutes) {
+            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        }
+
+        let dataToEncrypt: Buffer;
+        let originalName: string | null = null;
+
+        if (type === 'text') {
+            const text = formData.get('content') as string;
+            if (!text) {
+                return NextResponse.json({ error: 'Missing text content' }, { status: 400 });
+            }
+            dataToEncrypt = Buffer.from(text, 'utf-8');
+        } else {
+            const file = formData.get('file') as File;
+            if (!file) {
+                return NextResponse.json({ error: 'Missing image file' }, { status: 400 });
+            }
+            originalName = file.name;
+            const arrayBuffer = await file.arrayBuffer();
+            dataToEncrypt = Buffer.from(arrayBuffer);
+        }
+
+        // Calculate decrypt time
+        const decryptAt = new Date(Date.now() + durationMinutes * 60 * 1000);
+
+        // Encrypt with tlock
+        const { ciphertext, roundNumber } = await encrypt(dataToEncrypt, decryptAt);
+
+        // Save to database
+        const item = createItem({
+            id: uuidv4(),
+            type,
+            encrypted_data: ciphertext,
+            original_name: originalName,
+            decrypt_at: decryptAt.getTime(),
+            round_number: roundNumber,
+            created_at: Date.now(),
+            last_duration_minutes: durationMinutes
+        });
+
+        // Update last used duration
+        setLastDuration(durationMinutes);
+
+        return NextResponse.json({
+            success: true,
+            item: {
+                id: item.id,
+                type: item.type,
+                original_name: item.original_name,
+                decrypt_at: item.decrypt_at,
+                created_at: item.created_at
+            }
+        });
+    } catch (error) {
+        console.error('Error creating item:', error);
+        return NextResponse.json({ error: 'Failed to create item' }, { status: 500 });
+    }
+}
