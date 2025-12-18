@@ -228,6 +228,7 @@ export default function ContentView({ selectedId, onDelete, onItemUpdated, onMen
                 </button>
             </div>
 
+
             <div className="content-body">
                 {item.unlocked ? (
                     <div className="unlocked-content">
@@ -240,6 +241,46 @@ export default function ContentView({ selectedId, onDelete, onItemUpdated, onMen
                                 className="image-content"
                             />
                         )}
+
+                        {/* Extend buttons for unlocked content */}
+                        <div className="extend-buttons" style={{ marginTop: '24px' }}>
+                            <span className="extend-label">Extend:</span>
+                            <button
+                                className="extend-btn"
+                                onClick={() => handleExtend(1)}
+                                disabled={extendingMinutes !== null}
+                            >
+                                {extendingMinutes === 1 ? '...' : '+1m'}
+                            </button>
+                            <button
+                                className="extend-btn"
+                                onClick={() => handleExtend(60)}
+                                disabled={extendingMinutes !== null}
+                            >
+                                {extendingMinutes === 60 ? '...' : '+1h'}
+                            </button>
+                            <button
+                                className="extend-btn"
+                                onClick={() => handleExtend(360)}
+                                disabled={extendingMinutes !== null}
+                            >
+                                {extendingMinutes === 360 ? '...' : '+6h'}
+                            </button>
+                            <button
+                                className="extend-btn"
+                                onClick={() => handleExtend(720)}
+                                disabled={extendingMinutes !== null}
+                            >
+                                {extendingMinutes === 720 ? '...' : '+12h'}
+                            </button>
+                            <button
+                                className="extend-btn"
+                                onClick={() => handleExtend(1440)}
+                                disabled={extendingMinutes !== null}
+                            >
+                                {extendingMinutes === 1440 ? '...' : '+1d'}
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     <div className="locked-content">
@@ -250,6 +291,7 @@ export default function ContentView({ selectedId, onDelete, onItemUpdated, onMen
                             Unlocks at {new Date(item.decrypt_at).toLocaleString()}
                         </p>
 
+                        {/* Extend buttons for locked content */}
                         <div className="extend-buttons">
                             <span className="extend-label">Extend:</span>
                             <button
