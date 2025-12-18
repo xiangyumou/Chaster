@@ -111,12 +111,10 @@ export default function ContentView({ selectedId, onDelete, onItemUpdated, onMen
             });
 
             if (response.ok) {
-                const data = await response.json();
-                setItem(prev => prev ? {
-                    ...prev,
-                    decrypt_at: data.decrypt_at,
-                    layer_count: data.layer_count
-                } : null);
+                // Refetch the item to get updated state (unlocked -> locked)
+                const itemResponse = await fetch(`/api/items/${item.id}`);
+                const updatedItem = await itemResponse.json();
+                setItem(updatedItem);
                 onItemUpdated?.();
             }
         } catch (error) {
@@ -287,9 +285,6 @@ export default function ContentView({ selectedId, onDelete, onItemUpdated, onMen
                         <div className="lock-icon">🔒</div>
                         <h2>Content Locked</h2>
                         <div className="countdown">{countdown}</div>
-                        <p className="unlock-time">
-                            Unlocks at {new Date(item.decrypt_at).toLocaleString()}
-                        </p>
 
                         {/* Extend buttons for locked content */}
                         <div className="extend-buttons">
