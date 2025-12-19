@@ -20,9 +20,10 @@ export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
         const type = formData.get('type') as 'text' | 'image';
-        const durationMinutes = parseInt(formData.get('durationMinutes') as string, 10);
+        const durationMinutes = formData.get('durationMinutes') ? parseInt(formData.get('durationMinutes') as string, 10) : null;
+        const decryptAtTimestamp = formData.get('decryptAt') ? parseInt(formData.get('decryptAt') as string, 10) : null;
 
-        if (!type || !durationMinutes) {
+        if (!type || (!durationMinutes && !decryptAtTimestamp)) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
@@ -46,7 +47,16 @@ export async function POST(request: NextRequest) {
         }
 
         // Calculate decrypt time
-        const decryptAt = new Date(Date.now() + durationMinutes * 60 * 1000);
+        let decryptAt: Date;
+        if (decryptAtTimestamp) {
+            decryptAt = new Date(decryptAtTimestamp);
+            if (isNaN(decryptAt.getTime()) || decryptAt.getTime() <= Date.now()) {
+                return NextResponse.json({ error: 'Invalid decrypt time, must be in the future' }, { status: 400 });
+            }
+        } else {
+            // Fallback to duration (guaranteed to be present due to check above)
+            decryptAt = new Date(Date.now() + (durationMinutes!) * 60 * 1000);
+        }
 
         // Encrypt with tlock
         const { ciphertext, roundNumber } = await encrypt(dataToEncrypt, decryptAt);
@@ -60,11 +70,13 @@ export async function POST(request: NextRequest) {
             decrypt_at: decryptAt.getTime(),
             round_number: roundNumber,
             created_at: Date.now(),
-            last_duration_minutes: durationMinutes
+            last_duration_minutes: durationMinutes // Can be null if using absolute time
         });
 
-        // Update last used duration
-        setLastDuration(durationMinutes);
+        // Update last used duration only if duration was used or calculated
+        if (durationMinutes) {
+            setLastDuration(durationMinutes);
+        }
 
         return NextResponse.json({
             success: true,

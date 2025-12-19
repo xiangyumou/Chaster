@@ -59,15 +59,26 @@ export default function AddModal({ isOpen, defaultDuration, onClose, onSubmit }:
             const targetDate = new Date(year, month, day, hour, minute);
             const now = new Date();
             const diffMs = targetDate.getTime() - now.getTime();
-            const diffMinutes = Math.max(1, Math.ceil(diffMs / 60000));
-            return diffMinutes;
+            // Allow negative values to indicate invalid time
+            return Math.ceil(diffMs / 60000);
         }
     }, [timeMode, accumulatedDuration, absoluteTime]);
 
     // Calculate and format the unlock time
     const unlockTimeInfo = useMemo(() => {
         const now = new Date();
-        const unlockDate = new Date(now.getTime() + calculatedDuration * 60 * 1000);
+        let unlockDate: Date;
+
+        if (timeMode === 'absolute') {
+            const year = parseInt(absoluteTime.year) + 2000;
+            const month = parseInt(absoluteTime.month) - 1;
+            const day = parseInt(absoluteTime.day);
+            const hour = parseInt(absoluteTime.hour);
+            const minute = parseInt(absoluteTime.minute);
+            unlockDate = new Date(year, month, day, hour, minute);
+        } else {
+            unlockDate = new Date(now.getTime() + calculatedDuration * 60 * 1000);
+        }
 
         // Format as "MM月dd日 HH:mm"
         const month = (unlockDate.getMonth() + 1).toString().padStart(2, '0');
@@ -76,7 +87,11 @@ export default function AddModal({ isOpen, defaultDuration, onClose, onSubmit }:
         const minute = unlockDate.getMinutes().toString().padStart(2, '0');
 
         // Calculate remaining time
-        const totalMinutes = calculatedDuration;
+        // validation: must be at least 1 minute in future
+        const diffMs = unlockDate.getTime() - now.getTime();
+        const totalMinutes = Math.ceil(diffMs / 60000);
+        const isValid = totalMinutes >= 1;
+
         const days = Math.floor(totalMinutes / 1440);
         const hours = Math.floor((totalMinutes % 1440) / 60);
         const mins = totalMinutes % 60;
@@ -86,12 +101,17 @@ export default function AddModal({ isOpen, defaultDuration, onClose, onSubmit }:
         if (hours > 0) remaining += `${hours}h `;
         remaining += `${mins}m`;
 
+        if (!isValid) {
+            remaining = 'Time must be in the future';
+        }
+
         return {
             formatted: `${month}月${day}日 ${hour}:${minute}`,
             remaining: remaining.trim(),
-            isValid: calculatedDuration > 0,
+            isValid: isValid,
+            unlockDate: unlockDate // Pass the date object for submission
         };
-    }, [calculatedDuration]);
+    }, [calculatedDuration, timeMode, absoluteTime]);
 
     if (!isOpen) return null;
 
@@ -127,7 +147,14 @@ export default function AddModal({ isOpen, defaultDuration, onClose, onSubmit }:
         try {
             const formData = new FormData();
             formData.append('type', type);
-            formData.append('durationMinutes', calculatedDuration.toString());
+
+            if (timeMode === 'absolute') {
+                // Send specific timestamp
+                formData.append('decryptAt', unlockTimeInfo.unlockDate.getTime().toString());
+            } else {
+                // Send duration
+                formData.append('durationMinutes', calculatedDuration.toString());
+            }
 
             if (type === 'text') {
                 formData.append('content', text);
@@ -326,7 +353,7 @@ export default function AddModal({ isOpen, defaultDuration, onClose, onSubmit }:
                     <button
                         type="submit"
                         className="submit-button"
-                        disabled={isSubmitting || (type === 'text' ? !text.trim() : !file) || !unlockTimeInfo.isValid || accumulatedDuration < 1}
+                        disabled={isSubmitting || (type === 'text' ? !text.trim() : !file) || !unlockTimeInfo.isValid}
                     >
                         {isSubmitting ? 'Encrypting...' : 'Encrypt & Save'}
                     </button>
