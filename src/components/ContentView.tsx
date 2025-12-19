@@ -252,6 +252,13 @@ export default function ContentView({ selectedId, onDelete, onItemUpdated, onMen
                             </button>
                             <button
                                 className="extend-btn"
+                                onClick={() => handleExtend(10)}
+                                disabled={extendingMinutes !== null}
+                            >
+                                {extendingMinutes === 10 ? '...' : '+10m'}
+                            </button>
+                            <button
+                                className="extend-btn"
                                 onClick={() => handleExtend(60)}
                                 disabled={extendingMinutes !== null}
                             >
@@ -263,13 +270,6 @@ export default function ContentView({ selectedId, onDelete, onItemUpdated, onMen
                                 disabled={extendingMinutes !== null}
                             >
                                 {extendingMinutes === 360 ? '...' : '+6h'}
-                            </button>
-                            <button
-                                className="extend-btn"
-                                onClick={() => handleExtend(720)}
-                                disabled={extendingMinutes !== null}
-                            >
-                                {extendingMinutes === 720 ? '...' : '+12h'}
                             </button>
                             <button
                                 className="extend-btn"
@@ -298,6 +298,13 @@ export default function ContentView({ selectedId, onDelete, onItemUpdated, onMen
                             </button>
                             <button
                                 className="extend-btn"
+                                onClick={() => handleExtend(10)}
+                                disabled={extendingMinutes !== null}
+                            >
+                                {extendingMinutes === 10 ? '...' : '+10m'}
+                            </button>
+                            <button
+                                className="extend-btn"
                                 onClick={() => handleExtend(60)}
                                 disabled={extendingMinutes !== null}
                             >
@@ -309,13 +316,6 @@ export default function ContentView({ selectedId, onDelete, onItemUpdated, onMen
                                 disabled={extendingMinutes !== null}
                             >
                                 {extendingMinutes === 360 ? '...' : '+6h'}
-                            </button>
-                            <button
-                                className="extend-btn"
-                                onClick={() => handleExtend(720)}
-                                disabled={extendingMinutes !== null}
-                            >
-                                {extendingMinutes === 720 ? '...' : '+12h'}
                             </button>
                             <button
                                 className="extend-btn"

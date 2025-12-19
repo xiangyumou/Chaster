@@ -12,9 +12,9 @@ interface AddModalProps {
 // Duration presets in minutes
 const DURATION_PRESETS = [
     { label: '1m', minutes: 1 },
+    { label: '10m', minutes: 10 },
     { label: '1h', minutes: 60 },
     { label: '6h', minutes: 360 },
-    { label: '12h', minutes: 720 },
     { label: '1d', minutes: 1440 },
 ];
 
