@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { Trash2, Plus, Copy, Check, Shield, AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useConfirm } from '@/components/confirm-provider';
+import { toast } from 'sonner';
 
 interface Token {
     token: string;
@@ -19,6 +21,7 @@ export default function TokensPage() {
     const [copied, setCopied] = useState<string | null>(null);
     const [newTokenName, setNewTokenName] = useState('');
     const [isCreating, setIsCreating] = useState(false);
+    const { confirm } = useConfirm();
 
     const fetchTokens = () => {
         setLoading(true);
@@ -27,11 +30,13 @@ export default function TokensPage() {
         })
             .then(res => res.json())
             .then(data => {
+                // API now returns { tokens: [...] } but fallback to likely structure if issue
                 setTokens(data.tokens || []);
                 setLoading(false);
             })
             .catch(err => {
                 console.error(err);
+                toast.error('Failed to load tokens');
                 setLoading(false);
             });
     };
@@ -46,7 +51,7 @@ export default function TokensPage() {
 
         setIsCreating(true);
         try {
-            await fetch('/api/v1/admin/tokens', {
+            const res = await fetch('/api/v1/admin/tokens', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -54,8 +59,13 @@ export default function TokensPage() {
                 },
                 body: JSON.stringify({ name: newTokenName })
             });
+            if (!res.ok) throw new Error('Failed to create token');
+
             setNewTokenName('');
+            toast.success('Token created successfully');
             fetchTokens();
+        } catch (e) {
+            toast.error('Failed to create token');
         } finally {
             setIsCreating(false);
         }
@@ -64,28 +74,33 @@ export default function TokensPage() {
     const handleCopy = (text: string) => {
         navigator.clipboard.writeText(text);
         setCopied(text);
+        toast.success('Token copied to clipboard');
         setTimeout(() => setCopied(null), 2000);
     };
 
     const handleDelete = async (tokenToDelete: string) => {
-        if (!confirm('Revoke this token? This action cannot be undone.')) return;
-        await fetch(`/api/v1/admin/tokens/${tokenToDelete}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${token}` }
+        const confirmed = await confirm({
+            title: 'Revoke Token',
+            description: 'Are you sure you want to revoke this token? This action cannot be undone and any application using it will lose access.',
+            confirmText: 'Revoke',
+            variant: 'destructive',
         });
-        fetchTokens();
+
+        if (!confirmed) return;
+
+        try {
+            await fetch(`/api/v1/admin/tokens/${tokenToDelete}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            toast.success('Token revoked');
+            fetchTokens();
+        } catch (e) {
+            toast.error('Failed to revoke token');
+        }
     };
 
     const handleToggle = async (t: Token) => {
-        // TODO: Implement toggle endpoint or use DELETE for revoke only
-        // For now, only revoke is implemented in backend properly as DELETE
-        // If PATCH exists, use it.
-        // My previous impl added PATCH for toggle? Check Step 258/275.
-        // Yes I added PATCH logic in console logic but did I implement endpoint?
-        // I implemented DELETE. Did I implement PATCH?
-        // I'll check `tasks`... "PATCH /api/v1/admin/tokens/:token: Updates an API token".
-        // Yes I did in Step 266 summary says I checked it.
-        // So I'll assume PATCH works.
         try {
             await fetch(`/api/v1/admin/tokens/${t.token}`, {
                 method: 'PATCH',
@@ -96,7 +111,9 @@ export default function TokensPage() {
                 body: JSON.stringify({ isActive: !t.isActive })
             });
             fetchTokens();
+            toast.success(t.isActive ? 'Token deactivated' : 'Token activated');
         } catch (e) {
+            toast.error('Failed to update token status');
             console.error(e);
         }
     };
@@ -162,11 +179,11 @@ export default function TokensPage() {
                                         <td className="p-4 align-middle">
                                             <button onClick={() => handleToggle(t)} title="Toggle Status">
                                                 {t.isActive ? (
-                                                    <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-500/10 text-green-500 text-xs font-medium border border-green-500/20">
+                                                    <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-500/10 text-green-500 text-xs font-medium border border-green-500/20 hover:bg-green-500/20 transition-colors cursor-pointer">
                                                         Active
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center px-2 py-1 rounded-full bg-muted text-muted-foreground text-xs font-medium border border-border">
+                                                    <span className="inline-flex items-center px-2 py-1 rounded-full bg-muted text-muted-foreground text-xs font-medium border border-border hover:bg-muted/80 transition-colors cursor-pointer">
                                                         Inactive
                                                     </span>
                                                 )}

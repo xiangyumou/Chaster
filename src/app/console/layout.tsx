@@ -6,7 +6,8 @@ import { Lock, LayoutDashboard, Key, Database, Settings, LogOut } from 'lucide-r
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ModeToggle } from '@/components/mode-toggle';
-import { cn } from '@/lib/utils'; // Assuming utils exists now
+import { cn } from '@/lib/utils';
+import { useConfirm } from '@/components/confirm-provider';
 
 export default function ConsoleLayout({
     children,
@@ -47,9 +48,20 @@ export default function ConsoleLayout({
         }
     };
 
-    const handleLogout = () => {
-        setToken(null);
-        router.push('/');
+    const { confirm } = useConfirm();
+
+    const handleLogout = async () => {
+        const confirmed = await confirm({
+            title: 'Sign Out',
+            description: 'Are you sure you want to sign out?',
+            confirmText: 'Sign Out',
+            cancelText: 'Cancel'
+        });
+
+        if (confirmed) {
+            setToken(null);
+            router.push('/');
+        }
     };
 
     if (!token) {

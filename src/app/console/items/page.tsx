@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { Trash2, Lock, Unlock, Image as ImageIcon, FileText, Search, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useConfirm } from '@/components/confirm-provider';
+import { toast } from 'sonner';
 
 interface Item {
     id: string;
@@ -21,6 +23,7 @@ export default function ItemsPage() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const { confirm } = useConfirm();
 
     const fetchItems = () => {
         setLoading(true);
@@ -34,6 +37,7 @@ export default function ItemsPage() {
             })
             .catch(err => {
                 console.error(err);
+                toast.error('Failed to load items');
                 setLoading(false);
             });
     };
@@ -43,14 +47,27 @@ export default function ItemsPage() {
     }, [token, filter]);
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this item?')) return;
+        const confirmed = await confirm({
+            title: 'Delete Item',
+            description: 'Are you sure you want to delete this encrypted item? This action is permanent.',
+            confirmText: 'Delete',
+            variant: 'destructive'
+        });
+
+        if (!confirmed) return;
+
         setDeletingId(id);
         try {
-            await fetch(`/api/v1/items/${id}`, {
+            const res = await fetch(`/api/v1/items/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` }
             });
+            if (!res.ok) throw new Error('Failed to delete');
+
+            toast.success('Item deleted successfully');
             fetchItems();
+        } catch (e) {
+            toast.error('Failed to delete item');
         } finally {
             setDeletingId(null);
         }
