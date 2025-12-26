@@ -82,6 +82,7 @@ export async function GET(
             }
         } else {
             response.timeRemainingMs = Number(item.decryptAt) - now;
+            response.content = null;
         }
 
         return successResponse(response);

@@ -6,7 +6,7 @@ import { encrypt } from '@/lib/tlock';
 import { z } from 'zod';
 
 const extendSchema = z.object({
-    minutes: z.number().int().positive(),
+    minutes: z.number().int().positive("Minutes must be positive"),
 });
 
 /**
@@ -117,7 +117,8 @@ export async function POST(
         });
     } catch (error: any) {
         if (error instanceof z.ZodError) {
-            return errorResponse('VALIDATION_ERROR', (error as any).errors[0]?.message || 'Validation error', 400);
+            const message = (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || 'Validation error';
+            return errorResponse('VALIDATION_ERROR', message, 400);
         }
 
         console.error('Error extending item:', error);

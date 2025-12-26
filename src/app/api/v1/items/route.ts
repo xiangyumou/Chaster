@@ -8,9 +8,9 @@ import { z } from 'zod';
 // Validation schemas
 const createItemSchema = z.object({
     type: z.enum(['text', 'image']),
-    content: z.string(),
-    durationMinutes: z.number().int().positive().optional(),
-    decryptAt: z.number().int().positive().optional(),
+    content: z.string().min(1, "Content cannot be empty"),
+    durationMinutes: z.number().int().positive("Duration must be positive").optional(),
+    decryptAt: z.number().int().positive("Decrypt time must be positive").optional(),
     metadata: z.record(z.string(), z.any()).optional(),
 }).superRefine((data, ctx) => {
     if (data.durationMinutes === undefined && data.decryptAt === undefined) {
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
         // Filter by status
         let filteredItems = allItems;
         if (query.status !== 'all') {
-            filteredItems = allItems.filter((item) => {
+            filteredItems = allItems.filter((item: any) => {
                 const unlocked = Number(item.decryptAt) <= now;
                 return query.status === 'unlocked' ? unlocked : !unlocked;
             });
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
         const paginatedItems = filteredItems.slice(query.offset, query.offset + query.limit);
 
         // Format response
-        const items = paginatedItems.map((item) => {
+        const items = paginatedItems.map((item: any) => {
             const unlocked = Number(item.decryptAt) <= now;
             const metadata = item.metadata ? JSON.parse(item.metadata) : null;
 
@@ -161,7 +161,8 @@ export async function GET(request: NextRequest) {
         });
     } catch (error: any) {
         if (error instanceof z.ZodError) {
-            return errorResponse('VALIDATION_ERROR', (error as any).errors[0]?.message || 'Validation error', 400);
+            const message = (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || 'Validation error';
+            return errorResponse('VALIDATION_ERROR', message, 400);
         }
 
         console.error('Error fetching items:', error);
@@ -240,9 +241,12 @@ export async function POST(request: NextRequest) {
         );
     } catch (error: any) {
         if (error instanceof z.ZodError) {
-            return errorResponse('VALIDATION_ERROR', (error as any).errors[0]?.message || 'Validation error', 400);
+            const message = (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || 'Validation error';
+            return errorResponse('VALIDATION_ERROR', message, 400);
         }
 
+        console.log('Caught Error:', error);
+        console.log('Is ZodError?', error instanceof z.ZodError);
         console.error('Error creating item:', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to create item', 500);
     }
