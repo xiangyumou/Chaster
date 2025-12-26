@@ -1,17 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
-import { Search, ChevronLeft, ChevronRight, Eye, Trash2 } from 'lucide-react';
+import { Trash2, Lock, Unlock, Image as ImageIcon, FileText, Search, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Item {
     id: string;
     type: 'text' | 'image';
+    originalName: string | null;
     decryptAt: number;
     createdAt: number;
-    layerCount: number;
     unlocked: boolean;
-    metadata: any;
     timeRemainingMs?: number;
 }
 
@@ -19,149 +19,146 @@ export default function ItemsPage() {
     const { token } = useAuthStore();
     const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(true);
-    const [total, setTotal] = useState(0);
-    const [offset, setOffset] = useState(0);
-    const [limit] = useState(20);
     const [filter, setFilter] = useState('all');
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    const fetchItems = async () => {
-        if (!token) return;
+    const fetchItems = () => {
         setLoading(true);
-        try {
-            const res = await fetch(`/api/v1/items?limit=${limit}&offset=${offset}&status=${filter}`, {
-                headers: { Authorization: `Bearer ${token}` }
+        fetch(`/api/v1/items?status=${filter}&limit=100`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.json())
+            .then(data => {
+                setItems(data.items || []);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(err);
+                setLoading(false);
             });
-            if (res.ok) {
-                const data = await res.json();
-                setItems(data.items);
-                setTotal(data.total);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
     };
 
     useEffect(() => {
-        fetchItems();
-    }, [token, offset, filter]);
+        if (token) fetchItems();
+    }, [token, filter]);
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this item?')) return;
+        setDeletingId(id);
         try {
             await fetch(`/api/v1/items/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchItems();
-        } catch (err) {
-            console.error(err);
+        } finally {
+            setDeletingId(null);
         }
     };
 
+    const formatDate = (ts: number) => new Date(ts).toLocaleString();
+
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold mb-2">Encrypted Items</h1>
-                    <p className="text-neutral-400">View and manage time-locked data.</p>
+                    <h1 className="text-3xl font-bold tracking-tight mb-2">Items</h1>
+                    <p className="text-muted-foreground">Manage encrypted content.</p>
                 </div>
-                <div className="flex gap-4">
-                    <select
-                        value={filter}
-                        onChange={(e) => { setFilter(e.target.value); setOffset(0); }}
-                        className="bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-2 text-sm focus:outline-none"
-                    >
-                        <option value="all">All Status</option>
-                        <option value="locked">Locked</option>
-                        <option value="unlocked">Unlocked</option>
-                    </select>
+                <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg border border-border">
+                    {['all', 'locked', 'unlocked'].map((f) => (
+                        <button
+                            key={f}
+                            onClick={() => setFilter(f)}
+                            className={cn(
+                                "px-4 py-1.5 rounded-md text-sm font-medium transition-all",
+                                filter === f
+                                    ? "bg-background text-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            {f.charAt(0).toUpperCase() + f.slice(1)}
+                        </button>
+                    ))}
                 </div>
             </div>
 
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
+            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-neutral-950 text-neutral-400 border-b border-neutral-800">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-muted/50 border-b border-border">
                             <tr>
-                                <th className="px-6 py-4 font-medium">ID</th>
-                                <th className="px-6 py-4 font-medium">Type</th>
-                                <th className="px-6 py-4 font-medium">Created</th>
-                                <th className="px-6 py-4 font-medium">Unlock Time</th>
-                                <th className="px-6 py-4 font-medium">Status</th>
-                                <th className="px-6 py-4 font-medium text-right">Actions</th>
+                                <th className="h-10 px-4 align-middle font-medium text-muted-foreground">Type</th>
+                                <th className="h-10 px-4 align-middle font-medium text-muted-foreground">ID / Name</th>
+                                <th className="h-10 px-4 align-middle font-medium text-muted-foreground">Created</th>
+                                <th className="h-10 px-4 align-middle font-medium text-muted-foreground">Decrypt At</th>
+                                <th className="h-10 px-4 align-middle font-medium text-muted-foreground">Status</th>
+                                <th className="h-10 px-4 align-middle font-medium text-muted-foreground text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-neutral-800">
-                            {items.map((item) => (
-                                <tr key={item.id} className="hover:bg-neutral-800/50 transition-colors">
-                                    <td className="px-6 py-4 font-mono text-neutral-400 truncate max-w-[150px]">{item.id}</td>
-                                    <td className="px-6 py-4 capitalize">{item.type}</td>
-                                    <td className="px-6 py-4 text-neutral-400">
-                                        {new Date(item.createdAt).toLocaleDateString()}
-                                    </td>
-                                    <td className="px-6 py-4 text-neutral-400">
-                                        {new Date(item.decryptAt).toLocaleString()}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${item.unlocked
-                                                ? 'bg-green-500/10 text-green-400'
-                                                : 'bg-amber-500/10 text-amber-400'
-                                            }`}>
-                                            {item.unlocked ? 'Unlocked' : 'Locked'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <a
-                                                href={`/api/v1/items/${item.id}`}
-                                                target="_blank"
-                                                className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-colors"
-                                                title="View Raw API"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </a>
-                                            <button
-                                                onClick={() => handleDelete(item.id)}
-                                                className="p-2 text-neutral-400 hover:text-red-400 hover:bg-neutral-800 rounded-lg transition-colors"
-                                                title="Delete"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                        <tbody>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={6} className="h-32 text-center text-muted-foreground">
+                                        <div className="flex items-center justify-center gap-2">
+                                            <Loader2 className="w-4 h-4 animate-spin" /> Loading items...
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                            ) : items.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="h-32 text-center text-muted-foreground">
+                                        No items found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                items.map((item) => (
+                                    <tr key={item.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                                        <td className="p-4 align-middle">
+                                            {item.type === 'text' ? (
+                                                <div className="flex items-center gap-2 text-blue-500">
+                                                    <FileText className="w-4 h-4" /> <span className="text-foreground">Text</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2 text-purple-500">
+                                                    <ImageIcon className="w-4 h-4" /> <span className="text-foreground">Image</span>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="p-4 align-middle font-mono text-xs text-muted-foreground">
+                                            <div className="text-foreground text-sm mb-0.5 max-w-[150px] truncate" title={item.originalName || 'Untitled'}>
+                                                {item.originalName || 'Untitled'}
+                                            </div>
+                                            {item.id.slice(0, 8)}...
+                                        </td>
+                                        <td className="p-4 align-middle text-muted-foreground">{formatDate(item.createdAt)}</td>
+                                        <td className="p-4 align-middle text-muted-foreground">{formatDate(item.decryptAt)}</td>
+                                        <td className="p-4 align-middle">
+                                            {item.unlocked ? (
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20">
+                                                    <Unlock className="w-3 h-3" /> Unlocked
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-500/10 text-orange-500 border border-orange-500/20">
+                                                    <Lock className="w-3 h-3" /> Locked
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="p-4 align-middle text-right">
+                                            <button
+                                                onClick={() => handleDelete(item.id)}
+                                                disabled={!!deletingId}
+                                                className="p-2 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+                                                title="Delete Item"
+                                            >
+                                                {deletingId === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
-                    {items.length === 0 && !loading && (
-                        <div className="p-8 text-center text-neutral-500">
-                            No items found.
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="flex justify-between items-center text-sm text-neutral-400">
-                <div>
-                    Showing {total > 0 ? offset + 1 : 0}-{Math.min(offset + limit, total)} of {total}
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setOffset(Math.max(0, offset - limit))}
-                        disabled={offset === 0}
-                        className="p-2 hover:bg-neutral-800 rounded-lg disabled:opacity-50 transition-colors"
-                    >
-                        <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={() => setOffset(offset + limit)}
-                        disabled={offset + limit >= total}
-                        className="p-2 hover:bg-neutral-800 rounded-lg disabled:opacity-50 transition-colors"
-                    >
-                        <ChevronRight className="w-4 h-4" />
-                    </button>
                 </div>
             </div>
         </div>

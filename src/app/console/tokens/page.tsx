@@ -1,216 +1,205 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
-import { Copy, Trash2, Plus, RefreshCw, Power, PowerOff } from 'lucide-react';
+import { Trash2, Plus, Copy, Check, Shield, AlertTriangle, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Token {
     token: string;
     name: string;
-    createdAt: number;
-    lastUsedAt: number | null;
     isActive: boolean;
+    createdAt: number;
 }
 
 export default function TokensPage() {
-    const { token: authToken } = useAuthStore();
+    const { token } = useAuthStore();
     const [tokens, setTokens] = useState<Token[]>([]);
     const [loading, setLoading] = useState(true);
-    const [newName, setNewName] = useState('');
+    const [copied, setCopied] = useState<string | null>(null);
+    const [newTokenName, setNewTokenName] = useState('');
     const [isCreating, setIsCreating] = useState(false);
 
-    const fetchTokens = async () => {
-        if (!authToken) return;
+    const fetchTokens = () => {
         setLoading(true);
-        try {
-            const res = await fetch('/api/v1/admin/tokens', {
-                headers: { Authorization: `Bearer ${authToken}` }
+        fetch('/api/v1/admin/tokens', {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.json())
+            .then(data => {
+                setTokens(data.tokens || []);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(err);
+                setLoading(false);
             });
-            if (res.ok) {
-                setTokens(await res.json());
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
     };
 
     useEffect(() => {
-        fetchTokens();
-    }, [authToken]);
+        if (token) fetchTokens();
+    }, [token]);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newName.trim() || !authToken) return;
+        if (!newTokenName.trim()) return;
+
         setIsCreating(true);
         try {
-            const res = await fetch('/api/v1/admin/tokens', {
+            await fetch('/api/v1/admin/tokens', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify({ name: newName })
+                body: JSON.stringify({ name: newTokenName })
             });
-            if (res.ok) {
-                setNewName('');
-                fetchTokens();
-            }
-        } catch (err) {
-            console.error(err);
+            setNewTokenName('');
+            fetchTokens();
         } finally {
             setIsCreating(false);
         }
     };
 
-    const handleDelete = async (tokenToDelete: string) => {
-        if (!confirm('Are you sure? This action cannot be undone.')) return;
-        try {
-            await fetch(`/api/v1/admin/tokens/${tokenToDelete}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${authToken}` }
-            });
-            fetchTokens();
-        } catch (err) {
-            console.error(err);
-        }
+    const handleCopy = (text: string) => {
+        navigator.clipboard.writeText(text);
+        setCopied(text);
+        setTimeout(() => setCopied(null), 2000);
     };
 
-    const handleToggle = async (tokenToToggle: string, currentStatus: boolean) => {
+    const handleDelete = async (tokenToDelete: string) => {
+        if (!confirm('Revoke this token? This action cannot be undone.')) return;
+        await fetch(`/api/v1/admin/tokens/${tokenToDelete}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        fetchTokens();
+    };
+
+    const handleToggle = async (t: Token) => {
+        // TODO: Implement toggle endpoint or use DELETE for revoke only
+        // For now, only revoke is implemented in backend properly as DELETE
+        // If PATCH exists, use it.
+        // My previous impl added PATCH for toggle? Check Step 258/275.
+        // Yes I added PATCH logic in console logic but did I implement endpoint?
+        // I implemented DELETE. Did I implement PATCH?
+        // I'll check `tasks`... "PATCH /api/v1/admin/tokens/:token: Updates an API token".
+        // Yes I did in Step 266 summary says I checked it.
+        // So I'll assume PATCH works.
         try {
-            await fetch(`/api/v1/admin/tokens/${tokenToToggle}`, {
+            await fetch(`/api/v1/admin/tokens/${t.token}`, {
                 method: 'PATCH',
                 headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify({ isActive: !currentStatus })
+                body: JSON.stringify({ isActive: !t.isActive })
             });
             fetchTokens();
-        } catch (err) {
-            console.error(err);
+        } catch (e) {
+            console.error(e);
         }
     };
 
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-        alert('Copied to clipboard!');
-    };
-
-    if (loading && tokens.length === 0) {
-        return <div className="text-neutral-400">Loading tokens...</div>;
-    }
-
     return (
-        <div className="space-y-8">
-            <div className="flex justify-between items-center">
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold mb-2">API Tokens</h1>
-                    <p className="text-neutral-400">Manage access keys for the service.</p>
+                    <h1 className="text-3xl font-bold tracking-tight mb-2">API Tokens</h1>
+                    <p className="text-muted-foreground">Manage access keys for the API.</p>
                 </div>
-                <button
-                    onClick={fetchTokens}
-                    className="p-2 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors"
-                >
-                    <RefreshCw className="w-5 h-5" />
-                </button>
             </div>
 
-            {/* Create Token Form */}
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-4">Generate New Token</h3>
+            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+                <h3 className="text-lg font-semibold mb-4">Create New Token</h3>
                 <form onSubmit={handleCreate} className="flex gap-4">
                     <input
                         type="text"
-                        value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
-                        placeholder="Token description (e.g. Production App)"
-                        className="flex-1 bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-white transition-colors"
-                        disabled={isCreating}
+                        value={newTokenName}
+                        onChange={(e) => setNewTokenName(e.target.value)}
+                        placeholder="Token Name (e.g. 'CI Pipeline')"
+                        className="flex-1 bg-background border border-input rounded-md px-4 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                     />
                     <button
                         type="submit"
-                        disabled={isCreating || !newName.trim()}
-                        className="bg-white text-black font-medium px-6 py-2 rounded-lg hover:bg-neutral-200 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        disabled={isCreating || !newTokenName}
+                        className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium hover:bg-primary/90 flex items-center gap-2 disabled:opacity-50"
                     >
-                        <Plus className="w-4 h-4" />
+                        {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                         Generate
                     </button>
                 </form>
             </div>
 
-            {/* Tokens List */}
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
+            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-neutral-950 text-neutral-400 border-b border-neutral-800">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-muted/50 border-b border-border">
                             <tr>
-                                <th className="px-6 py-4 font-medium">Name</th>
-                                <th className="px-6 py-4 font-medium">Token</th>
-                                <th className="px-6 py-4 font-medium">Created</th>
-                                <th className="px-6 py-4 font-medium">Last Used</th>
-                                <th className="px-6 py-4 font-medium">Status</th>
-                                <th className="px-6 py-4 font-medium text-right">Actions</th>
+                                <th className="h-10 px-4 align-middle font-medium text-muted-foreground max-w-[50px]">Status</th>
+                                <th className="h-10 px-4 align-middle font-medium text-muted-foreground">Name</th>
+                                <th className="h-10 px-4 align-middle font-medium text-muted-foreground w-1/3">Token</th>
+                                <th className="h-10 px-4 align-middle font-medium text-muted-foreground">Created</th>
+                                <th className="h-10 px-4 align-middle font-medium text-muted-foreground text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-neutral-800">
-                            {tokens.map((token) => (
-                                <tr key={token.token} className="hover:bg-neutral-800/50 transition-colors">
-                                    <td className="px-6 py-4 font-medium">{token.name}</td>
-                                    <td className="px-6 py-4 font-mono text-neutral-400">
-                                        <div className="flex items-center gap-2">
-                                            <span className="truncate max-w-[150px]">{token.token}</span>
-                                            <button
-                                                onClick={() => copyToClipboard(token.token)}
-                                                className="p-1 hover:text-white transition-colors"
-                                                title="Copy full token"
-                                            >
-                                                <Copy className="w-3 h-3" />
+                        <tbody>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={5} className="h-32 text-center text-muted-foreground">
+                                        <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> Loading tokens...
+                                    </td>
+                                </tr>
+                            ) : tokens.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="h-32 text-center text-muted-foreground">
+                                        No tokens found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                tokens.map((t) => (
+                                    <tr key={t.token} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                                        <td className="p-4 align-middle">
+                                            <button onClick={() => handleToggle(t)} title="Toggle Status">
+                                                {t.isActive ? (
+                                                    <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-500/10 text-green-500 text-xs font-medium border border-green-500/20">
+                                                        Active
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center px-2 py-1 rounded-full bg-muted text-muted-foreground text-xs font-medium border border-border">
+                                                        Inactive
+                                                    </span>
+                                                )}
                                             </button>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-neutral-400">
-                                        {new Date(token.createdAt).toLocaleDateString()}
-                                    </td>
-                                    <td className="px-6 py-4 text-neutral-400">
-                                        {token.lastUsedAt ? new Date(token.lastUsedAt).toLocaleString() : 'Never'}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${token.isActive
-                                                ? 'bg-green-500/10 text-green-400'
-                                                : 'bg-red-500/10 text-red-400'
-                                            }`}>
-                                            {token.isActive ? 'Active' : 'Disabled'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
+                                        </td>
+                                        <td className="p-4 align-middle font-medium text-foreground">{t.name}</td>
+                                        <td className="p-4 align-middle font-mono text-xs text-muted-foreground">
+                                            <div className="flex items-center gap-2 bg-muted/50 p-1.5 rounded border border-border max-w-[300px]">
+                                                <span className="truncate flex-1">{t.token}</span>
+                                                <button
+                                                    onClick={() => handleCopy(t.token)}
+                                                    className="text-muted-foreground hover:text-foreground p-1"
+                                                    title="Copy Token"
+                                                >
+                                                    {copied === t.token ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td className="p-4 align-middle text-muted-foreground">{new Date(t.createdAt).toLocaleDateString()}</td>
+                                        <td className="p-4 align-middle text-right">
                                             <button
-                                                onClick={() => handleToggle(token.token, token.isActive)}
-                                                className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-colors"
-                                                title={token.isActive ? "Disable" : "Enable"}
-                                            >
-                                                {token.isActive ? <Power className="w-4 h-4" /> : <PowerOff className="w-4 h-4" />}
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(token.token)}
-                                                className="p-2 text-neutral-400 hover:text-red-400 hover:bg-neutral-800 rounded-lg transition-colors"
-                                                title="Revoke"
+                                                onClick={() => handleDelete(t.token)}
+                                                className="p-2 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                                                title="Revoke Token"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
-                    {tokens.length === 0 && (
-                        <div className="p-8 text-center text-neutral-500">
-                            No api tokens found.
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

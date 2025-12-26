@@ -5,6 +5,8 @@ import { useAuthStore } from '@/lib/store';
 import { Lock, LayoutDashboard, Key, Database, Settings, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { ModeToggle } from '@/components/mode-toggle';
+import { cn } from '@/lib/utils'; // Assuming utils exists now
 
 export default function ConsoleLayout({
     children,
@@ -28,13 +30,9 @@ export default function ConsoleLayout({
         e.preventDefault();
         setError('');
 
-        // Validate token against API
         try {
-            const res = await fetch('/api/health', { // Health doesn't need auth, but let's check stats to verify token
-                method: 'GET',
-            });
-
-            // Actually we should hit an authenticated endpoint to verify
+            // Accessing public endpoint to "warm up" or verify network is fine
+            // Ideally verify token with stats
             const verifyRes = await fetch('/api/v1/stats', {
                 headers: { Authorization: `Bearer ${inputToken}` }
             });
@@ -56,15 +54,15 @@ export default function ConsoleLayout({
 
     if (!token) {
         return (
-            <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
-                <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-xl p-8">
+            <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+                <div className="w-full max-w-md bg-card border border-border rounded-xl p-8 shadow-lg">
                     <div className="flex justify-center mb-6">
-                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                            <Lock className="w-6 h-6 text-black" />
+                        <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center shadow-sm">
+                            <Lock className="w-6 h-6 text-primary-foreground" />
                         </div>
                     </div>
-                    <h2 className="text-2xl font-bold text-center text-white mb-2">Console Access</h2>
-                    <p className="text-neutral-400 text-center mb-8">Enter your API Token to continue</p>
+                    <h2 className="text-2xl font-bold text-center text-foreground mb-2">Console Access</h2>
+                    <p className="text-muted-foreground text-center mb-8">Enter your API Token to continue</p>
 
                     <form onSubmit={handleLogin} className="space-y-4">
                         <div>
@@ -73,17 +71,20 @@ export default function ConsoleLayout({
                                 value={inputToken}
                                 onChange={(e) => setInputToken(e.target.value)}
                                 placeholder="tok_..."
-                                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-white transition-colors font-mono text-sm"
+                                className="w-full bg-background border border-input rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring transition-all font-mono text-sm"
                             />
                         </div>
-                        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                        {error && <p className="text-destructive text-sm text-center font-medium">{error}</p>}
                         <button
                             type="submit"
-                            className="w-full bg-white text-black font-medium py-3 rounded-lg hover:bg-neutral-200 transition-colors"
+                            className="w-full bg-primary text-primary-foreground font-medium py-3 rounded-lg hover:bg-primary/90 transition-colors shadow-sm"
                         >
                             Access Console
                         </button>
                     </form>
+                    <div className="mt-6 flex justify-center">
+                        <ModeToggle />
+                    </div>
                 </div>
             </div>
         );
@@ -97,17 +98,17 @@ export default function ConsoleLayout({
     ];
 
     return (
-        <div className="min-h-screen bg-neutral-950 text-neutral-100 flex">
+        <div className="min-h-screen bg-background flex">
             {/* Sidebar */}
-            <aside className="w-64 border-r border-neutral-800 p-6 flex flex-col">
+            <aside className="w-64 border-r border-border bg-muted/30 p-6 flex flex-col">
                 <div className="flex items-center gap-3 mb-10 px-2">
-                    <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                        <Lock className="w-4 h-4 text-black" />
+                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-sm">
+                        <Lock className="w-4 h-4 text-primary-foreground" />
                     </div>
-                    <span className="font-bold text-lg">Chaster</span>
+                    <span className="font-bold text-lg tracking-tight">Chaster</span>
                 </div>
 
-                <nav className="space-y-2 flex-1">
+                <nav className="space-y-1 flex-1">
                     {navItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = pathname === item.href;
@@ -115,10 +116,12 @@ export default function ConsoleLayout({
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive
-                                        ? 'bg-neutral-800 text-white'
-                                        : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
-                                    }`}
+                                className={cn(
+                                    "flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-medium transition-colors",
+                                    isActive
+                                        ? "bg-primary text-primary-foreground shadow-sm"
+                                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                                )}
                             >
                                 <Icon className="w-4 h-4" />
                                 {item.label}
@@ -127,18 +130,21 @@ export default function ConsoleLayout({
                     })}
                 </nav>
 
-                <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors mt-auto"
-                >
-                    <LogOut className="w-4 h-4" />
-                    Sign Out
-                </button>
+                <div className="flex items-center justify-between mt-auto pt-6 border-t border-border">
+                    <ModeToggle className="bg-transparent hover:bg-accent" />
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        Sign Out
+                    </button>
+                </div>
             </aside>
 
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto">
-                <div className="p-8 max-w-6xl mx-auto">
+                <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
                     {children}
                 </div>
             </main>

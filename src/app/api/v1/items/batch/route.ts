@@ -10,11 +10,8 @@ const createItemSchema = z.object({
     content: z.string(),
     durationMinutes: z.number().int().positive().optional(),
     decryptAt: z.number().int().positive().optional(),
-    metadata: z.record(z.any()).optional(),
-}).refine(
-    (data) => data.durationMinutes !== undefined || data.decryptAt !== undefined,
-    { message: 'Either durationMinutes or decryptAt must be provided' }
-);
+    metadata: z.record(z.string(), z.any()).optional(),
+});
 
 const batchSchema = z.array(createItemSchema).max(50);
 
@@ -44,14 +41,12 @@ export async function POST(request: NextRequest) {
         const items = batchSchema.parse(body);
         const prisma = getPrismaClient();
 
-        const results = [];
-
-        // Process in parallel (limited) or serial? Serial for simplicity and rate limiting implicitly
-        // tlock encrypt involves network calls (drand), so parallel is better but maybe too heavy?
-        // Let's do `Promise.all`
-
-        // Note: This logic duplicates single creation logic. Ideally refactor.
-        // For now, I'll inline.
+        // Validate each item logic
+        for (const item of items) {
+            if (item.durationMinutes === undefined && item.decryptAt === undefined) {
+                return errorResponse('VALIDATION_ERROR', 'Either durationMinutes or decryptAt must be provided for all items', 400);
+            }
+        }
 
         const createdItems = await Promise.all(items.map(async (itemInput) => {
             let decryptAt: Date;
@@ -85,9 +80,6 @@ export async function POST(request: NextRequest) {
             };
         }));
 
-        // Batch insert
-        // Prisma createMany is not supported nicely with different data? 
-        // Wait, createMany supports array of data. Yes!
         await prisma.item.createMany({
             data: createdItems,
         });

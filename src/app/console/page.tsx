@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
-import { Lock, Unlock, Database, Clock } from 'lucide-react';
+import { Lock, Unlock, Database, Clock, Activity } from 'lucide-react';
+import { useTheme } from 'next-themes';
 
 interface Stats {
     totalItems: number;
@@ -20,6 +21,7 @@ export default function DashboardPage() {
     const { token } = useAuthStore();
     const [stats, setStats] = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
+    const { theme } = useTheme();
 
     useEffect(() => {
         if (!token) return;
@@ -39,50 +41,60 @@ export default function DashboardPage() {
     }, [token]);
 
     if (loading) {
-        return <div className="text-neutral-400">Loading dashboard...</div>;
+        return (
+            <div className="flex items-center justify-center h-64 text-muted-foreground animate-pulse">
+                Loading dashboard data...
+            </div>
+        );
     }
 
     if (!stats) return null;
 
     const cards = [
-        { label: 'Total Items', value: stats.totalItems, icon: Database, color: 'text-blue-400' },
-        { label: 'Locked', value: stats.lockedItems, icon: Lock, color: 'text-red-400' },
-        { label: 'Unlocked', value: stats.unlockedItems, icon: Unlock, color: 'text-green-400' },
-        { label: 'Avg Duration (min)', value: stats.avgLockDurationMinutes, icon: Clock, color: 'text-amber-400' },
+        { label: 'Total Items', value: stats.totalItems, icon: Database, color: 'text-blue-500' },
+        { label: 'Locked', value: stats.lockedItems, icon: Lock, color: 'text-orange-500' },
+        { label: 'Unlocked', value: stats.unlockedItems, icon: Unlock, color: 'text-green-500' },
+        { label: 'Avg Duration (min)', value: stats.avgLockDurationMinutes, icon: Clock, color: 'text-purple-500' },
     ];
 
     const pieData = [
         { name: 'Text', value: stats.byType.text },
         { name: 'Image', value: stats.byType.image },
     ];
-    const COLORS = ['#60a5fa', '#f87171'];
+    // Adjust colors for theme? using standard hex is safer for charts
+    const COLORS = ['#3b82f6', '#f43f5e'];
 
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-                <p className="text-neutral-400">Overview of your encryption service.</p>
+                <h1 className="text-3xl font-bold tracking-tight mb-2">Dashboard</h1>
+                <p className="text-muted-foreground">Overview of your encryption service.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {cards.map((card) => {
                     const Icon = card.icon;
                     return (
-                        <div key={card.label} className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+                        <div key={card.label} className="bg-card border border-border rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between mb-4">
-                                <span className="text-neutral-400 text-sm font-medium">{card.label}</span>
-                                <Icon className={`w-5 h-5 ${card.color}`} />
+                                <span className="text-muted-foreground text-sm font-medium">{card.label}</span>
+                                <div className={`p-2 rounded-full bg-muted/50 ${card.color}`}>
+                                    <Icon className="w-4 h-4" />
+                                </div>
                             </div>
-                            <div className="text-3xl font-bold">{card.value}</div>
+                            <div className="text-3xl font-bold tracking-tight">{card.value}</div>
                         </div>
                     );
                 })}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold mb-6">Item Distribution</h3>
-                    <div className="h-[300px] flex items-center justify-center">
+                <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+                    <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-primary" />
+                        Item Distribution
+                    </h3>
+                    <div className="h-[300px] flex items-center justify-center w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
@@ -94,21 +106,27 @@ export default function DashboardPage() {
                                     fill="#8884d8"
                                     paddingAngle={5}
                                     dataKey="value"
+                                    stroke="none"
                                 >
                                     {pieData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#171717', borderColor: '#262626', color: '#fff' }}
-                                    itemStyle={{ color: '#fff' }}
+                                    contentStyle={{
+                                        backgroundColor: 'hsl(var(--popover))',
+                                        borderRadius: 'var(--radius)',
+                                        border: '1px solid hsl(var(--border))',
+                                        color: 'hsl(var(--popover-foreground))'
+                                    }}
+                                    itemStyle={{ color: 'hsl(var(--foreground))' }}
                                 />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
                     <div className="flex justify-center gap-6 mt-4">
                         {pieData.map((entry, index) => (
-                            <div key={entry.name} className="flex items-center gap-2 text-sm text-neutral-400">
+                            <div key={entry.name} className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index] }} />
                                 {entry.name} ({entry.value})
                             </div>
@@ -116,20 +134,26 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 flex flex-col justify-center items-center text-center">
-                    <div className="max-w-xs">
-                        <h3 className="text-lg font-semibold mb-2">System Status</h3>
-                        <div className="flex items-center gap-2 justify-center mb-6">
-                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                            <span className="text-green-500 font-medium">Operational</span>
+                <div className="bg-card border border-border rounded-xl p-6 shadow-sm flex flex-col justify-center items-center text-center">
+                    <div className="max-w-xs space-y-6">
+                        <div className="flex flex-col items-center">
+                            <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-4">
+                                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_#22c55e]" />
+                            </div>
+                            <h3 className="text-xl font-semibold mb-2">System Operational</h3>
+                            <p className="text-muted-foreground text-sm">
+                                The service is running normally. Data is encrypted and secure.
+                            </p>
                         </div>
 
-                        <p className="text-neutral-400 text-sm mb-6">
-                            The service is running normally using Prisma 5.22.0.
-                        </p>
-
-                        <div className="p-4 bg-neutral-950 rounded-lg text-left text-xs font-mono text-neutral-500 overflow-hidden break-all">
-                            DATABASE_URL configured
+                        <div className="p-4 bg-muted/50 rounded-lg text-left w-full border border-border">
+                            <div className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Environment</div>
+                            <div className="text-xs font-mono text-foreground overflow-hidden break-all">
+                                NODE_ENV: production
+                            </div>
+                            <div className="text-xs font-mono text-foreground overflow-hidden break-all mt-1">
+                                DB: SQLite (Prisma)
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, errorResponse, successResponse } from '@/lib/auth';
 import { decrypt } from '@/lib/decryption';
@@ -31,11 +31,13 @@ import { decrypt } from '@/lib/decryption';
  */
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    props: { params: Promise<{ id: string }> }
 ) {
     // Authenticate
     const authResult = await authenticate(request);
     if ('error' in authResult) return authResult.error;
+
+    const params = await props.params;
 
     try {
         const prisma = getPrismaClient();
@@ -113,11 +115,13 @@ export async function GET(
  */
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    props: { params: Promise<{ id: string }> }
 ) {
     // Authenticate
     const authResult = await authenticate(request);
     if ('error' in authResult) return authResult.error;
+
+    const params = await props.params;
 
     try {
         const prisma = getPrismaClient();

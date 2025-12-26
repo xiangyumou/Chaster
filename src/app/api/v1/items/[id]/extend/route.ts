@@ -46,11 +46,13 @@ const extendSchema = z.object({
  */
 export async function POST(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    props: { params: Promise<{ id: string }> }
 ) {
     // Authenticate
     const authResult = await authenticate(request);
     if ('error' in authResult) return authResult.error;
+
+    const params = await props.params;
 
     try {
         const body = await request.json();
@@ -115,7 +117,7 @@ export async function POST(
         });
     } catch (error: any) {
         if (error instanceof z.ZodError) {
-            return errorResponse('VALIDATION_ERROR', error.errors[0].message, 400);
+            return errorResponse('VALIDATION_ERROR', (error as any).errors[0]?.message || 'Validation error', 400);
         }
 
         console.error('Error extending item:', error);

@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
         }, 201);
     } catch (error: any) {
         if (error instanceof z.ZodError) {
-            return errorResponse('VALIDATION_ERROR', error.errors[0]?.message || 'Invalid input', 400);
+            return errorResponse('VALIDATION_ERROR', (error as any).errors[0]?.message || 'Invalid input', 400);
         }
         return errorResponse('INTERNAL_ERROR', 'Failed to create token', 500);
     }

@@ -11,7 +11,7 @@ const createItemSchema = z.object({
     content: z.string(),
     durationMinutes: z.number().int().positive().optional(),
     decryptAt: z.number().int().positive().optional(),
-    metadata: z.record(z.any()).optional(),
+    metadata: z.record(z.string(), z.any()).optional(),
 }).superRefine((data, ctx) => {
     if (data.durationMinutes === undefined && data.decryptAt === undefined) {
         ctx.addIssue({
@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
         });
     } catch (error: any) {
         if (error instanceof z.ZodError) {
-            return errorResponse('VALIDATION_ERROR', error.errors[0].message, 400);
+            return errorResponse('VALIDATION_ERROR', (error as any).errors[0]?.message || 'Validation error', 400);
         }
 
         console.error('Error fetching items:', error);
@@ -240,7 +240,7 @@ export async function POST(request: NextRequest) {
         );
     } catch (error: any) {
         if (error instanceof z.ZodError) {
-            return errorResponse('VALIDATION_ERROR', error.errors[0].message, 400);
+            return errorResponse('VALIDATION_ERROR', (error as any).errors[0]?.message || 'Validation error', 400);
         }
 
         console.error('Error creating item:', error);
