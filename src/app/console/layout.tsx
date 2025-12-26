@@ -15,6 +15,7 @@ export default function ConsoleLayout({
     children: React.ReactNode;
 }) {
     const { token, setToken } = useAuthStore();
+    const { confirm } = useConfirm();
     const [mounted, setMounted] = useState(false);
     const [inputToken, setInputToken] = useState('');
     const [error, setError] = useState('');
@@ -48,7 +49,7 @@ export default function ConsoleLayout({
         }
     };
 
-    const { confirm } = useConfirm();
+
 
     const handleLogout = async () => {
         const confirmed = await confirm({
