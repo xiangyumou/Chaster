@@ -31,11 +31,13 @@ export async function GET(request: NextRequest) {
             orderBy: { createdAt: 'desc' },
         });
 
-        return successResponse(tokens.map(t => ({
-            ...t,
-            createdAt: Number(t.createdAt),
-            lastUsedAt: t.lastUsedAt ? Number(t.lastUsedAt) : null,
-        })));
+        return successResponse({
+            tokens: tokens.map(t => ({
+                ...t,
+                createdAt: Number(t.createdAt),
+                lastUsedAt: t.lastUsedAt ? Number(t.lastUsedAt) : null,
+            }))
+        });
     } catch (error) {
         return errorResponse('INTERNAL_ERROR', 'Failed to fetch tokens', 500);
     }
