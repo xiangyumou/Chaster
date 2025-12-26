@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
-import { Lock, Unlock, Database, Clock, Activity } from 'lucide-react';
+import { Lock, Unlock, Database, Clock, Activity, AlertTriangle } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useRouter } from 'next/navigation';
 
 interface Stats {
     totalItems: number;
@@ -18,9 +19,11 @@ interface Stats {
 }
 
 export default function DashboardPage() {
-    const { token } = useAuthStore();
+    const { token, setToken } = useAuthStore();
     const [stats, setStats] = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
     const { theme } = useTheme();
 
     useEffect(() => {
@@ -29,16 +32,30 @@ export default function DashboardPage() {
         fetch('/api/v1/stats', {
             headers: { Authorization: `Bearer ${token}` }
         })
-            .then(res => res.json())
+            .then(async (res) => {
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        // Token invalid
+                        setToken(null);
+                        router.push('/console'); // Should trigger layout login view
+                        throw new Error('Unauthorized');
+                    }
+                    throw new Error('Failed to fetch data');
+                }
+                return res.json();
+            })
             .then(data => {
                 setStats(data);
                 setLoading(false);
             })
             .catch(err => {
                 console.error(err);
+                if (err.message !== 'Unauthorized') {
+                    setError('Failed to load dashboard data. Please switch to Console tab again or retry.');
+                }
                 setLoading(false);
             });
-    }, [token]);
+    }, [token, setToken, router]);
 
     if (loading) {
         return (
@@ -48,7 +65,16 @@ export default function DashboardPage() {
         );
     }
 
-    if (!stats) return null;
+    if (error) {
+        return (
+            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-4">
+                <AlertTriangle className="w-8 h-8 text-orange-500" />
+                <p>{error}</p>
+            </div>
+        );
+    }
+
+    if (!stats) return null; // Should not happen if loading false and no error, unless logged out
 
     const cards = [
         { label: 'Total Items', value: stats.totalItems, icon: Database, color: 'text-blue-500' },
@@ -61,7 +87,6 @@ export default function DashboardPage() {
         { name: 'Text', value: stats.byType.text },
         { name: 'Image', value: stats.byType.image },
     ];
-    // Adjust colors for theme? using standard hex is safer for charts
     const COLORS = ['#3b82f6', '#f43f5e'];
 
     return (
