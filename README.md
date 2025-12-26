@@ -4,8 +4,6 @@
 
 > **New in v1.0**: Transformed from a single-user app to a full-featured API service with an Admin Console.
 
-![Chaster Dashboard](/docs/images/dashboard-preview.png)
-
 ## ✨ Key Features
 
 *   **🛡️ Service-Oriented Architecture**: robust RESTful API for integration with other apps.
@@ -53,6 +51,8 @@ npm start
 *   **[Interactive API Docs](/api/docs)**: Swagger UI (runs locally at `/api/docs`).
 *   **[Product Requirements (PRD)](docs/PRD.md)**: Architecture and design details.
 *   **[Testing & QA](docs/TESTING.md)**: Strategy for Unit, Integration, and Stress tests.
+*   **[Contributing](CONTRIBUTING.md)**: Guidelines for contributing to the project.
+*   **[Changelog](CHANGELOG.md)**: Version history and release notes.
 
 ## 🛠️ Configuration
 

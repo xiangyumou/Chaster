@@ -86,10 +86,13 @@ The Console is a built-in React application for managing the service.
 *   Docker & Production Tooling (Logs, Backups)
 
 ### 🔮 Future (v2.0+)
+*These features are planned but **not yet implemented**:*
 *   **Multi-Tenancy**: Logical isolation of items per Token/User.
 *   **Webhooks**: Notify external URLs when an item is unlocked.
 *   **S3 Storage**: Support external object storage for large files.
 *   **Public Shared Links**: Allow unauthenticated users to view specific unlocked items via a secure link.
+
+> **Note**: The current version (v1.0) is a **single-tenant system** with no user management or multi-user support.
 
 ---
 
