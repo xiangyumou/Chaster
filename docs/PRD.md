@@ -218,16 +218,56 @@ Chaster 是一个创新的 Web 应用，它利用**时间锁加密技术 (Timelo
 | `created_at` | INTEGER | 创建时间戳（毫秒） | NOT NULL |
 | `last_duration_minutes` | INTEGER | 最后设定的时长（分钟） | NULL |
 | `layer_count` | INTEGER | 加密层数 | NOT NULL DEFAULT 1 |
+| `user_id` | TEXT | 用户标识 | NOT NULL DEFAULT 'local' |
+
+**索引**：
+- `idx_items_user_id`: 用户ID索引
+- `idx_items_user_decrypt`: 复合索引(user_id, decrypt_at)
 
 #### 表结构：`settings`
 
 | 字段名 | 类型 | 说明 | 约束 |
 |--------|------|------|------|
-| `key` | TEXT | 设置项键名 | PRIMARY KEY |
+| `key` | TEXT | 设置项键名 | PRIMARY KEY (key, user_id) |
 | `value` | TEXT | 设置项值 | NOT NULL |
+| `user_id` | TEXT | 用户标识 | NOT NULL DEFAULT 'local' |
 
 **当前设置项**：
 - `last_duration_minutes`：用户最后一次设定的时长（默认 720 分钟 = 12 小时）
+
+---
+
+## 🏗️ 多用户架构预留
+
+### 架构模式
+当前版本采用**单用户模式**，但已预留多用户架构基础，确保将来可以轻松升级为多用户系统。
+
+### 用户上下文抽象
+创建了 `user-context.ts` 模块，提供统一的用户身份管理接口：
+
+```typescript
+// 单用户模式（当前）
+getCurrentUserId() // 返回 'local'
+isAuthenticated() // 返回 true
+
+// 多用户模式（将来只需修改这两个函数）
+getCurrentUserId() // 返回真实用户 ID
+isAuthenticated() // 检查会话状态
+```
+
+### 数据隔离设计
+- 所有数据表均包含 `user_id` 字段
+- 所有查询自动按 `user_id` 过滤
+- 性能索引已优化用户级查询
+
+### 升级路径
+将来升级为多用户系统时，只需：
+1. 实现认证系统（如 NextAuth.js）
+2. 修改 `getCurrentUserId()` 和 `isAuthenticated()` 函数
+3. 添加登录/注册页面
+4. 所有业务逻辑无需改动
+
+**预计改造时间**：3-4 天（相比完全重构节省 60%+ 时间）
 
 ---
 
