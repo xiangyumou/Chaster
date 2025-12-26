@@ -1,0 +1,63 @@
+// Chaster Database Schema
+// 时间锁加密服务数据模型
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 加密项目表
+model Item {
+  id            String   @id @default(uuid())
+  type          String   // 'text' | 'image'
+  encryptedData String   @map("encrypted_data")
+  originalName  String?  @map("original_name")
+  decryptAt     BigInt   @map("decrypt_at")
+  roundNumber   BigInt   @map("round_number")
+  createdAt     BigInt   @map("created_at")
+  layerCount    Int      @default(1) @map("layer_count")
+  metadata      String?  @map("metadata")  // JSON string (SQLite doesn't have native JSON type)
+  
+  @@index([decryptAt], name: "idx_items_decrypt_at")
+  @@index([createdAt], name: "idx_items_created_at")
+  @@map("items")
+}
+
+// API Token 表
+model ApiToken {
+  token       String   @id
+  name        String
+  createdAt   BigInt   @map("created_at")
+  lastUsedAt  BigInt?  @map("last_used_at")
+  isActive    Boolean  @default(true) @map("is_active")
+  
+  @@index([isActive], name: "idx_api_tokens_active")
+  @@map("api_tokens")
+}
+
+// 系统配置表
+model SystemConfig {
+  key   String @id
+  value String
+  
+  @@map("system_config")
+}
+
+// API 调用日志（可选）
+model ApiLog {
+  id         String   @id @default(uuid())
+  token      String?
+  endpoint   String
+  method     String
+  statusCode Int      @map("status_code")
+  timestamp  BigInt
+  duration   Int?     // 毫秒
+  
+  @@index([timestamp], name: "idx_api_logs_timestamp")
+  @@index([token], name: "idx_api_logs_token")
+  @@map("api_logs")
+}
