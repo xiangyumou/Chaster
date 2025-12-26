@@ -22,7 +22,7 @@ import { decrypt, canDecrypt } from '@/lib/tlock';
 // But for Integration tests, using real DB and Tokens is better.
 // We will use the same TEST_TOKEN env var.
 
-const TEST_TOKEN = process.env.TEST_TOKEN || 'tok_test';
+const TEST_TOKEN = process.env.UNIT_TEST_TOKEN || process.env.TEST_TOKEN || 'tok_test';
 const BASE_URL = 'http://localhost:3000/api/v1';
 
 // We need to ensure the DB has this token. 
@@ -35,13 +35,13 @@ describe('Items API (In-Process Coverage)', () => {
      */
     function createRequest(method: string, path: string, body?: any, startParams?: string) {
         const url = `${BASE_URL}${path}${startParams || ''}`;
-        const init: RequestInit = {
+        const init: any = {
             method,
             headers: {
                 'Authorization': `Bearer ${TEST_TOKEN}`,
                 'Content-Type': 'application/json'
             }
-        } as any;
+        };
         if (body) {
             init.body = JSON.stringify(body);
         }

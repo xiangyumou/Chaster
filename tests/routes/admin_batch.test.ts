@@ -4,18 +4,18 @@ import { GET, POST } from '@/app/api/v1/admin/tokens/route';
 import { DELETE } from '@/app/api/v1/admin/tokens/[token]/route';
 import { POST as BATCH_POST } from '@/app/api/v1/items/batch/route';
 
-const TEST_TOKEN = process.env.TEST_TOKEN || 'tok_test';
+const TEST_TOKEN = process.env.UNIT_TEST_TOKEN || process.env.TEST_TOKEN || 'tok_test';
 const BASE_URL = 'http://localhost:3000/api/v1';
 
 function createRequest(method: string, path: string, body?: any) {
     const url = `${BASE_URL}${path}`;
-    const init: RequestInit = {
+    const init: any = {
         method,
         headers: {
             'Authorization': `Bearer ${TEST_TOKEN}`,
             'Content-Type': 'application/json'
         }
-    } as any;
+    };
     if (body) {
         init.body = JSON.stringify(body);
     }

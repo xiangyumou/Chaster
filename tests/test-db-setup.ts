@@ -60,19 +60,24 @@ async function createTestToken() {
     const { getPrismaClient } = await import('../src/lib/prisma.js');
     const db = getPrismaClient();
 
-    const testToken = 'tok_test_vitest_' + Date.now();
-
+    const unitTestToken = 'tok_unit_test_' + Date.now();
     await db.apiToken.create({
         data: {
-            token: testToken,
-            name: 'Vitest Test Token',
+            token: unitTestToken,
+            name: 'Vitest Unit Test Token',
             createdAt: BigInt(Date.now()),
             isActive: true
         }
     });
+    process.env.UNIT_TEST_TOKEN = unitTestToken;
+    console.log(`✅ Created UNIT_TEST_TOKEN: ${unitTestToken.substring(0, 20)}...`);
 
-    // Export for tests to use
-    process.env.TEST_TOKEN = testToken;
+    // If a token is already provided (e.g. for integration tests against real server), use it for TEST_TOKEN
+    if (process.env.TEST_TOKEN) {
+        console.log(`ℹ️  Using existing TEST_TOKEN from environment: ${process.env.TEST_TOKEN.substring(0, 10)}...`);
+        return;
+    }
 
-    console.log(`✅ Created test token: ${testToken.substring(0, 20)}...`);
+    // Fallback: If no TEST_TOKEN is set, use the unit test token.
+    process.env.TEST_TOKEN = unitTestToken;
 }

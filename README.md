@@ -52,6 +52,7 @@ npm start
 *   **[API Reference](docs/API_REFERENCE.md)**: How to use the REST API.
 *   **[Interactive API Docs](/api/docs)**: Swagger UI (runs locally at `/api/docs`).
 *   **[Product Requirements (PRD)](docs/PRD.md)**: Architecture and design details.
+*   **[Testing & QA](docs/TESTING.md)**: Strategy for Unit, Integration, and Stress tests.
 
 ## 🛠️ Configuration
 
