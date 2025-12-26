@@ -54,10 +54,12 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # env files (can opt-in for committing if needed)
+.env
 .env*.local
 .env.development.local
 .env.test.local
 .env.production.local
+!.env.example
 
 # vercel
 .vercel
@@ -67,7 +69,7 @@ lerna-debug.log*
 next-env.d.ts
 
 # database
-/data
+**/data/
 
 # generated files
 /src/generated/prisma
