@@ -17,6 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:integration": "RUN_INTEGRATION_TESTS=1 vitest run",
     "test:clean": "tsx scripts/stress-test-cleanup.ts",
     "stress:basic": "tsx scripts/stress-test-comprehensive.ts --scenario basic --mixed",
     "stress:high": "tsx scripts/stress-test-comprehensive.ts --scenario high --mixed",

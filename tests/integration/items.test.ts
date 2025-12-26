@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import fetch from 'node-fetch';
-import { TEST_CONFIG } from '../utils';
+import { TEST_CONFIG } from '../setup.js';
 
 // Helper to create valid auth header
 const authHeader = (token: string) => ({
@@ -8,28 +8,28 @@ const authHeader = (token: string) => ({
     'Content-Type': 'application/json'
 });
 
-describe('Chaster Integration Tests', () => {
+// These are live integration tests that require a running server
+// They are skipped by default. To run them:
+// 1. Start the dev server: npm run dev
+// 2. Set TEST_TOKEN env var with a valid token
+// 3. Run: npm run test:integration
+const describeIntegration = process.env.RUN_INTEGRATION_TESTS ? describe : describe.skip;
+
+describeIntegration('Chaster Integration Tests', () => {
     let authToken: string;
 
-    // 1. Setup: Get a valid token (requires manual start or known token)
-    // For local tests, we assume a "test-token" exists or we create one via CLI beforehand.
-    // However, to be self-contained, let's assume we can generate one if we have DB access.
-    // BUT since these are black-box HTTP tests, we need a valid token.
-    // WE WILL USE THE "INITIAL_ADMIN_TOKEN" if we can find it, OR fail and ask dev to provide one.
-    // Strategy: We will use a dedicated test token "tok_test_integration" that MUST be created.
+    beforeAll(() => {
+        // Read token from TEST_CONFIG which is set by test setup
+        authToken = TEST_CONFIG.TOKEN || process.env.TEST_TOKEN || '';
 
-    // Actually, let's create a script to seed the DB for testing, but since we are running against "localhost:3000",
-    // we assume the server is running.
-
-    // For this run, we will assume we have a valid token.
-    // We'll read from env or use a hardcoded fallback that matches what we'll seed.
-    authToken = process.env.TEST_TOKEN || '';
-
-    // We can't easily "create" a token via HTTP if we don't have one initially.
-    // So we rely on "npm run token create" output or env var.
+        if (!authToken) {
+            console.warn('⚠️  WARNING: TEST_TOKEN not set. Integration tests may fail.');
+            console.warn('Set TEST_TOKEN env var or the test will use auto-generated token.');
+        }
+    });
 
     it('should have a token for testing', () => {
-        // Skipped if we handle this in setup
+        expect(authToken).toBeTruthy();
     });
 
     // =========================================================================
