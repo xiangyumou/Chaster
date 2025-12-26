@@ -2,7 +2,20 @@ import { describe, it, expect, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { POST, GET } from '@/app/api/v1/items/route';
 import { POST as EXTEND } from '@/app/api/v1/items/[id]/extend/route';
-import { GET as GET_ONE } from '@/app/api/v1/items/[id]/route';
+import { GET as GET_ONE, DELETE } from '@/app/api/v1/items/[id]/route';
+
+// Mock tlock to control decryption state
+vi.mock('@/lib/tlock', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@/lib/tlock')>();
+    return {
+        ...actual,
+        encrypt: vi.fn().mockResolvedValue({ ciphertext: 'mock_ct', roundNumber: 100 }),
+        decrypt: vi.fn(), // We will mock implementation in test
+        canDecrypt: vi.fn()
+    };
+});
+
+import { decrypt, canDecrypt } from '@/lib/tlock';
 
 // Mock Auth: We will assume specific tokens exist or we need to add a way 
 // to mock `authenticate` function if we don't want to use real tokens.
@@ -105,6 +118,29 @@ describe('Items API (In-Process Coverage)', () => {
         expect(data.layerCount).toBeGreaterThan(1);
     });
 
+    it('should get unlocked item (decrypted)', async () => {
+        // Mock tlock to simulate time passed and successful decryption
+        // We use Fake Timers to trick the Route Handler into thinking time passed
+        vi.useFakeTimers();
+        const future = new Date();
+        future.setMinutes(future.getMinutes() + 20); // Advance 20 mins (Lock was 10 mins)
+        vi.setSystemTime(future);
+
+        (canDecrypt as any).mockReturnValue(true);
+        (decrypt as any).mockResolvedValue(Buffer.from('Coverage Content'));
+
+        const req = createRequest('GET', `/items/${createdId}`);
+        const res = await GET_ONE(req, { params: Promise.resolve({ id: createdId }) });
+        const data = await res.json();
+
+        // Cleanup timers
+        vi.useRealTimers();
+
+        expect(res.status).toBe(200);
+        expect(data.id).toBe(createdId);
+        expect(data.content).toBe('Coverage Content'); // Should be present!
+    });
+
     // Validations (Coverage for catch blocks)
     it('should fail creation with empty content', async () => {
         const req = createRequest('POST', '/items', {
@@ -114,6 +150,64 @@ describe('Items API (In-Process Coverage)', () => {
         });
         const res = await POST(req);
         expect(res.status).toBe(400);
+    });
+
+    it('should create an image item', async () => {
+        const req = createRequest('POST', '/items', {
+            type: 'image',
+            content: 'SGVsbG8=',
+            durationMinutes: 10
+        });
+        const res = await POST(req);
+        // Do NOT update createdId to preserve Text Item for later tests
+        expect(res.status).toBe(201);
+    });
+
+    it('should list items with status filter', async () => {
+        const req = createRequest('GET', '/items?status=locked');
+        const res = await GET(req);
+        const data = await res.json();
+        expect(res.status).toBe(200);
+        expect(Array.isArray(data.items)).toBe(true);
+    });
+
+    it('should list items with pagination', async () => {
+        const req = createRequest('GET', '/items?limit=1');
+        const res = await GET(req);
+        const data = await res.json();
+        expect(res.status).toBe(200);
+        expect(data.limit).toBe(1);
+    });
+
+    it('should fail creation with past decryptAt', async () => {
+        const req = createRequest('POST', '/items', {
+            type: 'text',
+            content: 'Future',
+            decryptAt: Date.now() - 10000
+        });
+        const res = await POST(req);
+        expect(res.status).toBe(400);
+    });
+
+    it('should fail creation without duration or decryptAt', async () => {
+        const req = createRequest('POST', '/items', {
+            type: 'text',
+            content: 'Incomplete'
+        });
+        const res = await POST(req);
+        expect(res.status).toBe(400);
+    });
+
+    it('should delete item', async () => {
+        const req = createRequest('DELETE', `/items/${createdId}`);
+        const res = await DELETE(req, { params: Promise.resolve({ id: createdId }) });
+        expect(res.status).toBe(200);
+    });
+
+    it('should return 404 for deleted item', async () => {
+        const req = createRequest('GET', `/items/${createdId}`);
+        const res = await GET_ONE(req, { params: Promise.resolve({ id: createdId }) });
+        expect(res.status).toBe(404);
     });
 
 });
