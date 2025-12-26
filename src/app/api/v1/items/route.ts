@@ -12,10 +12,15 @@ const createItemSchema = z.object({
     durationMinutes: z.number().int().positive().optional(),
     decryptAt: z.number().int().positive().optional(),
     metadata: z.record(z.any()).optional(),
-}).refine(
-    (data) => data.durationMinutes !== undefined || data.decryptAt !== undefined,
-    { message: 'Either durationMinutes or decryptAt must be provided' }
-);
+}).superRefine((data, ctx) => {
+    if (data.durationMinutes === undefined && data.decryptAt === undefined) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Either durationMinutes or decryptAt must be provided',
+            path: ['durationMinutes']
+        });
+    }
+});
 
 const querySchema = z.object({
     status: z.enum(['locked', 'unlocked', 'all']).optional().default('all'),
@@ -27,6 +32,60 @@ const querySchema = z.object({
 
 /**
  * GET /api/v1/items - List all items with filtering and pagination
+ */
+/**
+ * @swagger
+ * /items:
+ *   get:
+ *     summary: List items
+ *     description: Retrieve a paginated list of encrypted items.
+ *     tags: [Items]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [all, locked, unlocked]
+ *           default: all
+ *         description: Filter by lock status
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [text, image]
+ *         description: Filter by content type
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Max items to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Pagination offset
+ *     responses:
+ *       200:
+ *         description: List of items
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 items:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Item'
+ *                 total:
+ *                   type: integer
+ *                 limit:
+ *                   type: integer
+ *                 offset:
+ *                   type: integer
+ *       401:
+ *         description: Unauthorized
  */
 export async function GET(request: NextRequest) {
     // Authenticate

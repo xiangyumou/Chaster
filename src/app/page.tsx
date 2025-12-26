@@ -1,103 +1,78 @@
-'use client';
-
-import { useState, useEffect, useCallback } from 'react';
-import Sidebar from '@/components/Sidebar';
-import AddModal from '@/components/AddModal';
-import ContentView from '@/components/ContentView';
-import { ItemListView } from '@/lib/db';
+import Link from 'next/link';
+import { ArrowRight, Lock, Database, Code } from 'lucide-react';
 
 export default function Home() {
-  const [items, setItems] = useState<ItemListView[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [lastDuration, setLastDuration] = useState(720);
-  const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const fetchItems = useCallback(async () => {
-    try {
-      const response = await fetch('/api/items');
-      const data = await response.json();
-      setItems(data.items || []);
-      setLastDuration(data.lastDuration || 720);
-    } catch (error) {
-      console.error('Error fetching items:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchItems();
-
-    // Refresh items periodically to update unlock status
-    const interval = setInterval(fetchItems, 30000);
-    return () => clearInterval(interval);
-  }, [fetchItems]);
-
-  const handleAddSubmit = async (formData: FormData) => {
-    const response = await fetch('/api/items', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      // Prepend new item to show at top (list is sorted DESC)
-      setItems((prev) => [data.item, ...prev]);
-      setSelectedId(data.item.id);
-
-      // Update last duration
-      const newDuration = parseInt(formData.get('durationMinutes') as string);
-      setLastDuration(newDuration);
-    }
-  };
-
-  const handleDelete = (id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-    if (selectedId === id) {
-      setSelectedId(null);
-    }
-  };
-
-  const handleSelectItem = (id: string) => {
-    setSelectedId(id);
-    // Close sidebar on mobile after selecting item
-    setSidebarOpen(false);
-  };
-
-  if (loading) {
-    return (
-      <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <div className="spinner"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="app-container">
-      <Sidebar
-        items={items}
-        selectedId={selectedId}
-        onSelectItem={handleSelectItem}
-        onAddClick={() => setShowAddModal(true)}
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 selection:bg-neutral-800">
+      <header className="container mx-auto p-6 flex justify-between items-center">
+        <div className="font-bold text-2xl flex items-center gap-2">
+          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+            <Lock className="w-4 h-4 text-black" />
+          </div>
+          Chaster
+        </div>
+        <nav className="flex gap-6 text-sm font-medium">
+          <Link href="/api/docs" className="hover:text-white text-neutral-400 transition-colors">Documentation</Link>
+          <a href="https://github.com/xiangyumou" target="_blank" className="hover:text-white text-neutral-400 transition-colors">GitHub</a>
+        </nav>
+      </header>
 
-      <ContentView
-        selectedId={selectedId}
-        onDelete={handleDelete}
-        onItemUpdated={fetchItems}
-        onMenuClick={() => setSidebarOpen(true)}
-      />
+      <main className="container mx-auto px-6 py-20">
+        <div className="max-w-3xl">
+          <h1 className="text-6xl font-bold tracking-tight mb-6 bg-gradient-to-r from-white to-neutral-500 bg-clip-text text-transparent">
+            Time-lock Encryption Service
+          </h1>
+          <p className="text-xl text-neutral-400 mb-10 leading-relaxed max-w-2xl">
+            A production-ready, API-first service for ensuring data remains encrypted until a specific future time.
+            Built on Drand threshold cryptography.
+          </p>
 
-      <AddModal
-        isOpen={showAddModal}
-        defaultDuration={lastDuration}
-        onClose={() => setShowAddModal(false)}
-        onSubmit={handleAddSubmit}
-      />
+          <div className="flex gap-4">
+            <Link
+              href="/console"
+              className="px-6 py-3 bg-white text-black font-medium rounded-lg hover:bg-neutral-200 transition-colors flex items-center gap-2"
+            >
+              Open Console <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              href="/api/docs"
+              className="px-6 py-3 border border-neutral-800 rounded-lg hover:bg-neutral-900 transition-colors flex items-center gap-2"
+            >
+              <Code className="w-4 h-4" /> API Reference
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8 mt-24">
+          <div className="p-6 border border-neutral-900 rounded-2xl bg-neutral-900/50">
+            <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center mb-4">
+              <Database className="w-5 h-5" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Service-First</h3>
+            <p className="text-neutral-400 text-sm">
+              Designed as a foundational layer. Stateless logic with minimal dependencies.
+            </p>
+          </div>
+          <div className="p-6 border border-neutral-900 rounded-2xl bg-neutral-900/50">
+            <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center mb-4">
+              <Lock className="w-5 h-5" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Secure by Default</h3>
+            <p className="text-neutral-400 text-sm">
+              Powered by tlock-js and drand. No key management required.
+            </p>
+          </div>
+          <div className="p-6 border border-neutral-900 rounded-2xl bg-neutral-900/50">
+            <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center mb-4">
+              <Code className="w-5 h-5" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Developer Friendly</h3>
+            <p className="text-neutral-400 text-sm">
+              Comprehensive OpenAPI docs, TypeScript SDK support, and metadata.
+            </p>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

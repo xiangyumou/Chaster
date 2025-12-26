@@ -3,7 +3,35 @@ import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
 
 /**
- * GET /api/v1/stats - Get statistics
+ * @swagger
+ * /stats:
+ *   get:
+ *     summary: System statistics
+ *     description: Retrieve system-wide statistics (admin only in future, currently protected by token).
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: Statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalItems:
+ *                   type: integer
+ *                 lockedItems:
+ *                   type: integer
+ *                 unlockedItems:
+ *                   type: integer
+ *                 byType:
+ *                   type: object
+ *                   properties:
+ *                     text: { type: integer }
+ *                     image: { type: integer }
+ *                 avgLockDurationMinutes:
+ *                   type: integer
+ *       401:
+ *         description: Unauthorized
  */
 export async function GET(request: NextRequest) {
     // Authenticate

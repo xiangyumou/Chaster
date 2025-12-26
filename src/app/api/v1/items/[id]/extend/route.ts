@@ -10,7 +10,39 @@ const extendSchema = z.object({
 });
 
 /**
- * POST /api/v1/items/:id/extend - Extend lock duration (re-encrypt)
+ * @swagger
+ * /items/{id}/extend:
+ *   post:
+ *     summary: Extend item lock
+ *     description: Extend the lock duration of an item. Resulting in re-encryption.
+ *     tags: [Items]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Item ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [minutes]
+ *             properties:
+ *               minutes:
+ *                 type: integer
+ *                 description: Minutes to add to current time or lock time
+ *     responses:
+ *       200:
+ *         description: Extended successfully
+ *       404:
+ *         description: Item not found
+ *       401:
+ *         description: Unauthorized
+ *       409:
+ *         description: Conflict (concurrent modification)
  */
 export async function POST(
     request: NextRequest,

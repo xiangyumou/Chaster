@@ -4,7 +4,30 @@ import { authenticate, errorResponse, successResponse } from '@/lib/auth';
 import { decrypt } from '@/lib/decryption';
 
 /**
- * GET /api/v1/items/:id - Get single item (auto-decrypt if time reached)
+ * @swagger
+ * /items/{id}:
+ *   get:
+ *     summary: Get item
+ *     description: Get item details. If the lock time has passed, includes the decrypted content.
+ *     tags: [Items]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Item ID
+ *     responses:
+ *       200:
+ *         description: Item details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Item'
+ *       404:
+ *         description: Item not found
+ *       401:
+ *         description: Unauthorized
  */
 export async function GET(
     request: NextRequest,
@@ -67,7 +90,26 @@ export async function GET(
 }
 
 /**
- * DELETE /api/v1/items/:id - Delete item
+ * @swagger
+ * /items/{id}:
+ *   delete:
+ *     summary: Delete item
+ *     description: Permanently delete an item.
+ *     tags: [Items]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Item ID
+ *     responses:
+ *       200:
+ *         description: Item deleted
+ *       404:
+ *         description: Item not found
+ *       401:
+ *         description: Unauthorized
  */
 export async function DELETE(
     request: NextRequest,
