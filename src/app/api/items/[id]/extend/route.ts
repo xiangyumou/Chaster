@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getItemById, updateItemEncryption } from '@/lib/db';
+import { getItemById, updateItemEncryptionOptimistic } from '@/lib/db';
 import { encrypt } from '@/lib/tlock';
 
 
@@ -36,15 +36,24 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             newDecryptAt
         );
 
-        // Update the item with new encryption layer
-        const newLayerCount = item.layer_count + 1;
-        updateItemEncryption(
+        // Use optimistic locking: only update if layer_count hasn't changed
+        const expectedLayerCount = item.layer_count;
+        const newLayerCount = expectedLayerCount + 1;
+        const success = updateItemEncryptionOptimistic(
             id,
             newCiphertext,
             newDecryptAt.getTime(),
             newRoundNumber,
+            expectedLayerCount,
             newLayerCount
         );
+
+        if (!success) {
+            // Concurrent modification detected - another request updated the item first
+            return NextResponse.json({
+                error: 'Concurrent modification detected. Please refresh and try again.'
+            }, { status: 409 });
+        }
 
         return NextResponse.json({
             success: true,

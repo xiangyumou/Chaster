@@ -110,6 +110,16 @@ export default function ContentView({ selectedId, onDelete, onItemUpdated, onMen
                 body: JSON.stringify({ minutes })
             });
 
+            if (response.status === 409) {
+                // Concurrent modification - refresh data and notify user
+                const itemResponse = await fetch(`/api/items/${item.id}`);
+                const updatedItem = await itemResponse.json();
+                setItem(updatedItem);
+                onItemUpdated?.();
+                alert('操作冲突，数据已刷新，请重试');
+                return;
+            }
+
             if (response.ok) {
                 // Refetch the item to get updated state (unlocked -> locked)
                 const itemResponse = await fetch(`/api/items/${item.id}`);

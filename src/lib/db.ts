@@ -118,6 +118,28 @@ export function updateItemEncryption(id: string, encrypted_data: string, decrypt
   return result.changes > 0;
 }
 
+/**
+ * Update encryption with optimistic locking to prevent race conditions.
+ * Only updates if the current layer_count matches expectedLayerCount.
+ * Returns true if update succeeded, false if concurrent modification detected.
+ */
+export function updateItemEncryptionOptimistic(
+  id: string,
+  encrypted_data: string,
+  decrypt_at: number,
+  round_number: number,
+  expectedLayerCount: number,
+  newLayerCount: number
+): boolean {
+  const db = getDb();
+  const result = db.prepare(`
+    UPDATE items 
+    SET encrypted_data = ?, decrypt_at = ?, round_number = ?, layer_count = ?
+    WHERE id = ? AND layer_count = ?
+  `).run(encrypted_data, decrypt_at, round_number, newLayerCount, id, expectedLayerCount);
+  return result.changes > 0;
+}
+
 export function deleteItem(id: string): boolean {
   const db = getDb();
   const result = db.prepare('DELETE FROM items WHERE id = ?').run(id);

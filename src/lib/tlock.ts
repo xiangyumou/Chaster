@@ -1,4 +1,5 @@
-import { timelockEncrypt, timelockDecrypt, roundAt, HttpChainClient, HttpCachingChain, Buffer as TlockBuffer } from 'tlock-js';
+import { timelockEncrypt, timelockDecrypt, roundAt, HttpChainClient, Buffer as TlockBuffer } from 'tlock-js';
+import { HttpChain } from 'drand-client';
 
 // Drand mainnet quicknet chain (3s rounds)
 const CHAIN_URL = 'https://api.drand.sh/52db9ba70e0cc0f6eaf7803dd07447a1f5477735fd3f661792ba94600c84e971';
@@ -7,7 +8,9 @@ let chainClient: HttpChainClient | null = null;
 
 async function getChainClient(): Promise<HttpChainClient> {
     if (!chainClient) {
-        const chain = new HttpCachingChain(CHAIN_URL);
+        // Use HttpChain instead of HttpCachingChain to prevent memory leak
+        // HttpCachingChain caches all beacons indefinitely, causing OOM after days of uptime
+        const chain = new HttpChain(CHAIN_URL);
         chainClient = new HttpChainClient(chain);
     }
     return chainClient;
