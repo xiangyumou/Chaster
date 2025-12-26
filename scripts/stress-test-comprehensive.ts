@@ -187,16 +187,39 @@ async function main() {
 
     // Configuration
     const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3002/api/v1';
-    const token = process.env.TEST_TOKEN || '';
+    let token = process.env.TEST_TOKEN || '';
 
+    // Auto-fetch token from database if not provided
     if (!token) {
-        console.error('❌ ERROR: TEST_TOKEN environment variable is required');
-        console.error('\nUsage:');
-        console.error('  TEST_TOKEN=your_token npm run stress:comprehensive');
-        console.error('\nOr export it:');
-        console.error('  export TEST_TOKEN=your_token');
-        console.error('  npm run stress:comprehensive');
-        process.exit(1);
+        console.log('⚙️  TEST_TOKEN not set, fetching from database...');
+        try {
+            // Import dynamically to avoid circular dependencies
+            const { getPrismaClient } = await import('../src/lib/prisma.js');
+            const db = getPrismaClient();
+
+            const activeToken = await db.apiToken.findFirst({
+                where: { isActive: true },
+                orderBy: { createdAt: 'desc' }
+            });
+
+            if (activeToken) {
+                token = activeToken.token;
+                console.log(`✅ Using token: ${token.substring(0, 20)}...`);
+            } else {
+                console.error('❌ ERROR: No active API tokens found in database');
+                console.error('\nCreate a token first:');
+                console.error('  npm run token create "Stress Test"');
+                process.exit(1);
+            }
+
+            await db.$disconnect();
+        } catch (error: any) {
+            console.error('❌ Failed to fetch token from database:', error.message);
+            console.error('\nYou can also set TEST_TOKEN manually:');
+            console.error('  export TEST_TOKEN=your_token');
+            console.error('  npm run stress:basic');
+            process.exit(1);
+        }
     }
 
     console.log('🚀 Chaster Comprehensive Stress Test Suite');
