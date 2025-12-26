@@ -1,109 +1,98 @@
-# Chaster - 时间锁加密内容保护应用
+# Chaster - Timelock Encryption Service
 
-基于**时间锁加密技术 (Timelock Encryption)** 和 **drand 去中心化随机信标网络**的内容保护应用。
+**Chaster** is a production-ready, self-hosted timelock encryption service. It allows you to encrypt data (text or images) that can only be decrypted after a specific time in the future. It relies on the [drand](https://drand.love/) decentralized random beacon network for trustless time-keeping.
 
-## ✨ 核心特性
+> **New in v1.0**: Transformed from a single-user app to a full-featured API service with an Admin Console.
 
-- 🔐 **真正的强制时间锁**：基于密码学，无法提前解密
-- 🌐 **去中心化信任**：依赖 drand 公共随机信标，无需信任第三方
-- 🔄 **多层加密**：支持对已加密内容再次加密，延长锁定时间
-- 📱 **响应式设计**：完美适配桌面和移动设备
-- 🎨 **现代化 UI**：简洁美观的用户界面
+![Chaster Dashboard](/docs/images/dashboard-preview.png)
 
-## 🚀 快速开始
+## ✨ Key Features
 
-### 开发环境
+*   **🛡️ Service-Oriented Architecture**: robust RESTful API for integration with other apps.
+*   **🔑 Secure Authentication**: Bearer Token authentication with granular management.
+*   **🖥️ Admin Console**: Modern web dashboard to manage items, tokens, and view statistics.
+*   **🔒 Trustless Encryption**: Mathematical guarantee that data cannot be decrypted before the timer expires.
+*   **💾 Flexible Storage**: SQLite (default) for ease of use, extendable to PostgreSQL/MySQL via Prisma.
+*   **🐳 Production Ready**: Docker support, structured logging, and database backup tools included.
+
+## 🚀 Quick Start
+
+### Method 1: Docker (Recommended)
 
 ```bash
-# 安装依赖
-npm install
+# Clone the repository
+git clone https://github.com/yourusername/chaster.git
+cd chaster
 
-# 启动开发服务器
-npm run dev
+# Start with Docker Compose
+docker-compose up -d
 
-# 访问应用
-打开 http://localhost:3000
+# Open Console
+# Visit http://localhost:3000/console
 ```
 
-### 生产构建
+### Method 2: Manual Installation
 
 ```bash
-# 构建生产版本
-npm run build
+# Install dependencies
+npm install
 
-# 启动生产服务器
+# Initialize Database & Generate Admin Token
+npm run db:init
+# (Copy the generated token from the output!)
+
+# Build & Start
+npm run build
 npm start
 ```
 
-### Docker 部署
+## 📖 Documentation
 
-```bash
-# 使用 Docker Compose
-docker-compose up -d
+*   **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)**: Detailed instructions for Docker, PM2, and Nginx.
+*   **[API Reference](docs/API_REFERENCE.md)**: How to use the REST API.
+*   **[Interactive API Docs](/api/docs)**: Swagger UI (runs locally at `/api/docs`).
+*   **[Product Requirements (PRD)](docs/PRD.md)**: Architecture and design details.
 
-# 或直接使用 Docker
-docker build -t chaster .
-docker run -p 3000:3000 -v $(pwd)/data:/app/data chaster
+## 🛠️ Configuration
+
+Create a `.env` file based on `.env.example`:
+
+```env
+# Database (Defaults to local SQLite)
+DATABASE_URL="file:./prisma/data/chaster.db"
+
+# Console Security
+# (Generated automatically by db:init)
 ```
 
-## 📚 技术栈
+## 🔧 Management Tools
 
-- **框架**：Next.js 16 + React 19
-- **样式**：Tailwind CSS 4
-- **数据库**：SQLite (Better-SQLite3)
-- **加密**：tlock-js + drand-client
-- **语言**：TypeScript 5
+### API Tokens
+If you lose your API tokens or lock yourself out, access the server terminal and run:
 
-## 🏗️ 架构特点
+```bash
+# List all tokens
+npm run token list
 
-### 单用户模式（当前）
-当前版本为单用户本地应用，所有数据存储在本地 SQLite 数据库中。
+# Create a new emergency token
+npm run token create "Emergency-Admin"
+```
 
-### 多用户架构预留
-项目已预留多用户架构基础，将来可轻松升级：
-- 所有数据表包含 `user_id` 字段
-- 用户上下文抽象层 (`user-context.ts`)
-- API 已支持用户级数据隔离
+### Database Backup
+```bash
+# Create a backup timestamped zip in ./backups/
+npm run db:backup
+```
 
-**升级到多用户预计只需 3-4 天**（相比完全重构节省 60%+ 时间）
+## 🛣️ Roadmap
 
-详见 [多用户架构预留](docs/PRD.md#🏗️-多用户架构预留)
+*   [x] REST API v1
+*   [x] Admin Console
+*   [x] Token Management
+*   [x] Docker Support
+*   [ ] Multi-user Tenants (Planned)
+*   [ ] Webhook Notifications (Planned)
 
-## 📖 文档
+## 📄 License
 
-- [产品需求文档 (PRD)](docs/PRD.md) - 完整的产品规格说明
-- [数据库迁移指南](docs/MIGRATION_GUIDE.md) - 架构升级与迁移说明
-
-## 🔒 安全性
-
-- **加密强度**：使用 BLS12-381 曲线的 IBE (Identity-Based Encryption)
-- **去中心化**：drand 网络由多个独立节点运行，无单点故障
-- **本地存储**：数据仅存储在本地，不上传第三方服务器
-- **密码学保证**：时间到达前数学上无法解密
-
-## 🛣️ 路线图
-
-### 已完成
-- ✅ 文本/图片时间锁加密
-- ✅ 双模式时间设定（持续时长 / 绝对时间）
-- ✅ 实时倒计时与自动解锁
-- ✅ 延长锁定功能（多层加密）
-- ✅ 响应式移动端适配
-- ✅ 多用户架构预留
-
-### 规划中
-- 🔮 深色模式支持
-- 🔮 标签/分类系统
-- 🔮 导出功能
-- 🔮 公开分享功能
-- 🔮 通知提醒系统
-- 🔮 完整多用户支持
-
-## 📄 许可证
-
-MIT License
-
----
-
-**更新时间**：2025-12-26  
-**版本**：v0.1.0 (Multi-User Ready)
+MIT License.
