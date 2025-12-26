@@ -38,7 +38,11 @@ export function generateMetadata(index: number): Record<string, any> {
         testId: `stress-test-${index}`,
         timestamp: Date.now(),
         category: ['personal', 'business', 'research'][index % 3],
-        priority: ['low', 'medium', 'high'][index % 3]
+        priority: ['low', 'medium', 'high'][index % 3],
+        // Test markers for easy cleanup
+        _test: true,
+        _testType: 'stress',
+        _testRunId: process.env.TEST_RUN_ID || Date.now()
     };
 }
 
