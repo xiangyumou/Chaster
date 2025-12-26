@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getItemById, deleteItem } from '@/lib/db';
 import { canDecrypt } from '@/lib/tlock';
 import { decryptLayers } from '@/lib/decryption';
+import { getCurrentUserId } from '@/lib/user-context';
 
 interface RouteParams {
     params: Promise<{ id: string }>;
@@ -11,7 +12,8 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
     try {
         const { id } = await params;
-        const item = getItemById(id);
+        const userId = getCurrentUserId();
+        const item = getItemById(id, userId);
 
         if (!item) {
             return NextResponse.json({ error: 'Item not found' }, { status: 404 });
@@ -70,7 +72,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
     try {
         const { id } = await params;
-        const success = deleteItem(id);
+        const userId = getCurrentUserId();
+        const success = deleteItem(id, userId);
 
         if (!success) {
             return NextResponse.json({ error: 'Item not found' }, { status: 404 });

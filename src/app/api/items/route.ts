@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllItems, createItem, getLastDuration, setLastDuration } from '@/lib/db';
 import { encrypt, getRoundForTime } from '@/lib/tlock';
+import { getCurrentUserId } from '@/lib/user-context';
 import { v4 as uuidv4 } from 'uuid';
 
 // GET /api/items - List all items
 export async function GET() {
     try {
-        const items = getAllItems();
-        const lastDuration = getLastDuration();
+        const userId = getCurrentUserId();
+        const items = getAllItems(userId);
+        const lastDuration = getLastDuration(userId);
         return NextResponse.json({ items, lastDuration });
     } catch (error) {
         console.error('Error fetching items:', error);
@@ -74,8 +76,9 @@ export async function POST(request: NextRequest) {
         });
 
         // Update last used duration only if duration was used or calculated
+        const userId = getCurrentUserId();
         if (durationMinutes) {
-            setLastDuration(durationMinutes);
+            setLastDuration(durationMinutes, userId);
         }
 
         return NextResponse.json({

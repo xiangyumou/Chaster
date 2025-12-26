@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getItemById, updateItemEncryptionOptimistic } from '@/lib/db';
 import { encrypt } from '@/lib/tlock';
+import { getCurrentUserId } from '@/lib/user-context';
 
 
 interface RouteParams {
@@ -19,7 +20,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return NextResponse.json({ error: 'Invalid minutes, must be 1, 10, 60, 360, or 1440' }, { status: 400 });
         }
 
-        const item = getItemById(id);
+        const userId = getCurrentUserId();
+        const item = getItemById(id, userId);
         if (!item) {
             return NextResponse.json({ error: 'Item not found' }, { status: 404 });
         }
@@ -45,7 +47,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             newDecryptAt.getTime(),
             newRoundNumber,
             expectedLayerCount,
-            newLayerCount
+            newLayerCount,
+            userId
         );
 
         if (!success) {
