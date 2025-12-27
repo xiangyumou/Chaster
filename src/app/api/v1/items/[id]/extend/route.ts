@@ -33,7 +33,7 @@ const extendSchema = z.object({
  *             properties:
  *               minutes:
  *                 type: integer
- *                 description: Minutes to add to current time or lock time
+ *                 description: Minutes to add to original unlock time
  *     responses:
  *       200:
  *         description: Extended successfully
@@ -86,8 +86,8 @@ export async function POST(
             contentToEncrypt = Buffer.from(item.encryptedData, 'utf-8');
         }
 
-        // Calculate new decrypt time
-        const newDecryptAt = new Date(now + minutes * 60 * 1000);
+        // Calculate new decrypt time based on original unlock time
+        const newDecryptAt = new Date(Number(item.decryptAt) + minutes * 60 * 1000);
 
         // Re-encrypt
         const { ciphertext, roundNumber } = await encrypt(contentToEncrypt, newDecryptAt);

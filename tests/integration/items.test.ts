@@ -189,9 +189,10 @@ describeIntegration('Chaster Integration Tests', () => {
             });
             expect(res.status).toBe(200);
 
-            // Verify new date
+            // Verify new date is original + 10 minutes
             const newData = await res.json() as any;
-            expect(newData.decryptAt).toBeGreaterThan(originalDecryptAt);
+            const expectedDecryptAt = originalDecryptAt + (10 * 60 * 1000);
+            expect(newData.decryptAt).toBe(expectedDecryptAt);
             expect(newData.layerCount).toBeGreaterThan(1);
         });
 
