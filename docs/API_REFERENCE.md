@@ -36,6 +36,12 @@ Retrieve a paginated list of items with optional filtering.
 | `limit` | `integer`| `50` | Number of items to return (max 1000) |
 | `offset` | `integer`| `0` | Number of items to skip |
 | `sort` | `string` | `created_desc` | Sort order: `created_asc`, `created_desc`, `decrypt_asc`, `decrypt_desc` |
+| `createdAfter` | `integer` | - | Filter by created time (epoch ms, inclusive) |
+| `createdBefore` | `integer` | - | Filter by created time (epoch ms, inclusive) |
+| `decryptAfter` | `integer` | - | Filter by unlock time (epoch ms, inclusive) |
+| `decryptBefore` | `integer` | - | Filter by unlock time (epoch ms, inclusive) |
+| `metadataKey` | `string` | - | Filter by the existence of a metadata key |
+| `ids` | `string` | - | Comma-separated list of IDs to filter |
 
 **Example:**
 ```bash
@@ -261,8 +267,115 @@ Check if the API server is running. No authentication required.
 
 ---
 
+## 📤 Export & Import API
+
+### 1. Export Items
+
+Export items as JSON, CSV, or NDJSON.
+
+**Endpoint:** `GET /export/items`
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `format` | `string` | `json` | Export format: `json`, `csv`, `ndjson` |
+| `includeContent` | `boolean` | `false` | Include decrypted content for unlocked items |
+| `status` | `string` | `all` | Filter: `all`, `locked`, `unlocked` |
+| `includeEncryptedData` | `boolean` | `true` | Include raw encrypted data (for backup) |
+
+### 2. Import Items
+
+Import items from a backup.
+
+**Endpoint:** `POST /import/items`
+
+```json
+{
+  "items": [
+    {
+      "id": "optional-uuid",
+      "type": "text",
+      "encryptedData": "...",
+      "decryptAt": 1735230000000,
+      "roundNumber": 12345,
+      "metadata": { ... }
+    }
+  ],
+  "conflictStrategy": "skip"  // or "overwrite", "error"
+}
+```
+
+---
+
+## 🔄 Batch Operations
+
+### 1. Batch Delete
+
+Delete multiple items at once.
+
+**Endpoint:** `POST /items/batch/delete`
+
+```json
+// By IDs:
+{ "ids": ["id1", "id2", ...] }
+
+// By Filter:
+{ "filter": { "status": "unlocked", "beforeDate": 1735230000000 } }
+```
+
+### 2. Batch Get
+
+Retrieve multiple items at once.
+
+**Endpoint:** `POST /items/batch/get`
+
+```json
+{
+  "ids": ["id1", "id2", "id3"],
+  "includeContent": true
+}
+```
+
+### 3. Update Metadata
+
+Update item metadata without re-encryption.
+
+**Endpoint:** `PATCH /items/:id/metadata`
+
+```json
+{
+  "metadata": { "newKey": "value" },
+  "merge": true  // false = replace, true = merge with existing
+}
+```
+
+---
+
+## ⚙️ Admin Config & Logs
+
+### Config API
+
+- `GET /admin/config` - List all config
+- `POST /admin/config` - Create/update config `{ "key": "...", "value": "..." }`
+- `GET /admin/config/:key` - Get single config
+- `PUT /admin/config/:key` - Update config
+- `DELETE /admin/config/:key` - Delete config
+
+### Logs API
+
+- `GET /admin/logs` - Query API logs (params: `token`, `endpoint`, `method`, `statusCode`, `startTime`, `endTime`, `limit`, `offset`)
+- `DELETE /admin/logs` - Clean logs `{ "beforeTimestamp": ... }`
+
+### Database Management
+
+- `POST /admin/db/backup` - Create database backup
+- `GET /admin/db/info` - Get database info (size, counts)
+- `POST /admin/db/vacuum` - Optimize SQLite database
+
+---
+
 ## ⚠️ Integration Notes
 
 1.  **Time Precision**: Time locks rely on drand rounds (approx. every 3 seconds). Do not expect millisecond-level precision for unlock times.
 2.  **Immutability**: Once created, the unlock time can only be **extended**, never reduced.
 3.  **Content Size**: Large Base64 images will increase payload size significantly. Consider request body size limits of your proxy/server (default Next.js limit is usually 4MB).
+

@@ -28,6 +28,13 @@ const querySchema = z.object({
     limit: z.number().int().positive().max(1000).optional().default(50),
     offset: z.number().int().nonnegative().optional().default(0),
     sort: z.enum(['created_asc', 'created_desc', 'decrypt_asc', 'decrypt_desc']).optional().default('created_desc'),
+    // Enhanced filtering options
+    createdAfter: z.number().int().positive().optional(),
+    createdBefore: z.number().int().positive().optional(),
+    decryptAfter: z.number().int().positive().optional(),
+    decryptBefore: z.number().int().positive().optional(),
+    metadataKey: z.string().optional(),
+    ids: z.string().optional(), // comma-separated IDs
 });
 
 /**
@@ -102,6 +109,13 @@ export async function GET(request: NextRequest) {
             limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 50,
             offset: searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0,
             sort: searchParams.get('sort') || 'created_desc',
+            // Enhanced filters
+            createdAfter: searchParams.get('createdAfter') ? parseInt(searchParams.get('createdAfter')!) : undefined,
+            createdBefore: searchParams.get('createdBefore') ? parseInt(searchParams.get('createdBefore')!) : undefined,
+            decryptAfter: searchParams.get('decryptAfter') ? parseInt(searchParams.get('decryptAfter')!) : undefined,
+            decryptBefore: searchParams.get('decryptBefore') ? parseInt(searchParams.get('decryptBefore')!) : undefined,
+            metadataKey: searchParams.get('metadataKey') || undefined,
+            ids: searchParams.get('ids') || undefined,
         });
 
         const prisma = getPrismaClient();
@@ -113,7 +127,15 @@ export async function GET(request: NextRequest) {
             where.type = query.type;
         }
 
-        // For status filtering, we need to fetch all and filter in memory
+        // Filter by IDs if provided
+        if (query.ids) {
+            const idList = query.ids.split(',').map((id) => id.trim()).filter(Boolean);
+            if (idList.length > 0) {
+                where.id = { in: idList };
+            }
+        }
+
+        // For status and date filtering, we need to fetch all and filter in memory
         // (SQLite doesn't support computed columns in WHERE)
         const allItems = await prisma.item.findMany({
             where,
@@ -122,12 +144,51 @@ export async function GET(request: NextRequest) {
                 : { decryptAt: query.sort === 'decrypt_asc' ? 'asc' : 'desc' },
         });
 
-        // Filter by status
+        // Apply in-memory filters
         let filteredItems = allItems;
+
+        // Filter by status
         if (query.status !== 'all') {
-            filteredItems = allItems.filter((item: any) => {
+            filteredItems = filteredItems.filter((item: any) => {
                 const unlocked = Number(item.decryptAt) <= now;
                 return query.status === 'unlocked' ? unlocked : !unlocked;
+            });
+        }
+
+        // Filter by created time range
+        if (query.createdAfter) {
+            filteredItems = filteredItems.filter(
+                (item: any) => Number(item.createdAt) >= query.createdAfter!
+            );
+        }
+        if (query.createdBefore) {
+            filteredItems = filteredItems.filter(
+                (item: any) => Number(item.createdAt) <= query.createdBefore!
+            );
+        }
+
+        // Filter by decrypt time range
+        if (query.decryptAfter) {
+            filteredItems = filteredItems.filter(
+                (item: any) => Number(item.decryptAt) >= query.decryptAfter!
+            );
+        }
+        if (query.decryptBefore) {
+            filteredItems = filteredItems.filter(
+                (item: any) => Number(item.decryptAt) <= query.decryptBefore!
+            );
+        }
+
+        // Filter by metadata key existence
+        if (query.metadataKey) {
+            filteredItems = filteredItems.filter((item: any) => {
+                if (!item.metadata) return false;
+                try {
+                    const meta = JSON.parse(item.metadata);
+                    return query.metadataKey! in meta;
+                } catch {
+                    return false;
+                }
             });
         }
 
