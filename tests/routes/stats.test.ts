@@ -7,25 +7,106 @@ const BASE_URL = 'http://localhost:3000/api/v1';
 
 function createRequest(method: string, path: string) {
     const url = `${BASE_URL}${path}`;
-    const init: any = {
+    return new NextRequest(url, {
         method,
         headers: {
             'Authorization': `Bearer ${TEST_TOKEN}`,
             'Content-Type': 'application/json'
         }
-    };
-    return new NextRequest(url, init);
+    });
 }
 
 describe('Stats API (In-Process)', () => {
-    it('should get system stats', async () => {
-        const req = createRequest('GET', '/stats');
-        const res = await GET(req);
-        const data = await res.json();
+    describe('GET /stats', () => {
+        it('should get system stats with all required fields', async () => {
+            const req = createRequest('GET', '/stats');
+            const res = await GET(req);
+            const data = await res.json();
 
-        expect(res.status).toBe(200);
-        expect(data.totalItems).toBeDefined();
-        expect(data.lockedItems).toBeDefined();
-        expect(typeof data.totalItems).toBe('number');
+            expect(res.status).toBe(200);
+
+            // Core counts
+            expect(typeof data.totalItems).toBe('number');
+            expect(typeof data.lockedItems).toBe('number');
+            expect(typeof data.unlockedItems).toBe('number');
+
+            // Counts should be non-negative
+            expect(data.totalItems).toBeGreaterThanOrEqual(0);
+            expect(data.lockedItems).toBeGreaterThanOrEqual(0);
+            expect(data.unlockedItems).toBeGreaterThanOrEqual(0);
+        });
+
+        it('should return correct byType breakdown', async () => {
+            const req = createRequest('GET', '/stats');
+            const res = await GET(req);
+            const data = await res.json();
+
+            expect(res.status).toBe(200);
+            expect(data.byType).toBeDefined();
+            expect(typeof data.byType.text).toBe('number');
+            expect(typeof data.byType.image).toBe('number');
+
+            // Type breakdown should sum to total
+            expect(data.byType.text + data.byType.image).toBe(data.totalItems);
+        });
+
+        it('should return avgLockDurationMinutes', async () => {
+            const req = createRequest('GET', '/stats');
+            const res = await GET(req);
+            const data = await res.json();
+
+            expect(res.status).toBe(200);
+            expect(typeof data.avgLockDurationMinutes).toBe('number');
+            expect(data.avgLockDurationMinutes).toBeGreaterThanOrEqual(0);
+        });
+
+        it('should return timestamp boundaries', async () => {
+            const req = createRequest('GET', '/stats');
+            const res = await GET(req);
+            const data = await res.json();
+
+            expect(res.status).toBe(200);
+
+            // These can be null if no items exist
+            if (data.totalItems > 0) {
+                expect(typeof data.oldestItem).toBe('number');
+                expect(typeof data.newestItem).toBe('number');
+                expect(data.oldestItem).toBeLessThanOrEqual(data.newestItem);
+            } else {
+                expect(data.oldestItem).toBeNull();
+                expect(data.newestItem).toBeNull();
+            }
+        });
+
+        it('should have consistent locked/unlocked count', async () => {
+            const req = createRequest('GET', '/stats');
+            const res = await GET(req);
+            const data = await res.json();
+
+            expect(res.status).toBe(200);
+            // lockedItems + unlockedItems should equal totalItems
+            expect(data.lockedItems + data.unlockedItems).toBe(data.totalItems);
+        });
+
+        it('should fail without authentication', async () => {
+            const req = new NextRequest(`${BASE_URL}/stats`, {
+                method: 'GET',
+            });
+            const res = await GET(req);
+
+            expect(res.status).toBe(401);
+        });
+
+        it('should fail with invalid token', async () => {
+            const req = new NextRequest(`${BASE_URL}/stats`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer invalid_token_12345',
+                },
+            });
+            const res = await GET(req);
+
+            expect(res.status).toBe(401);
+        });
     });
 });
