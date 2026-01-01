@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { NextRequest } from 'next/server';
-import { GET, DELETE } from '@/app/api/v1/admin/logs/route';
+import { GET, DELETE } from '../../src/app/api/v1/admin/logs/route';
 import { getPrismaClient } from '@/lib/prisma';
 
 const TEST_TOKEN = process.env.UNIT_TEST_TOKEN || process.env.TEST_TOKEN || 'tok_test';
