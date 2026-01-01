@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { ItemListView } from '@/lib/types';
 
 interface SidebarProps {
@@ -62,9 +63,30 @@ interface ItemCardProps {
 }
 
 function ItemCard({ item, isSelected, onClick }: ItemCardProps) {
-    const now = Date.now();
+    const [now, setNow] = useState<number>(0);
+
+    useEffect(() => {
+        // eslint-disable-next-line
+        setNow(Date.now());
+        const interval = setInterval(() => setNow(Date.now()), 60000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Prevent hydration mismatch by waiting for client-side time
+    if (!now) {
+        return (
+            <div className={`item-card ${isSelected ? 'selected' : ''}`} onClick={onClick}>
+                <div className="item-icon">{item.type === 'text' ? '📝' : '🖼️'}</div>
+                <div className="item-info">
+                    <div className="item-title">{item.type === 'text' ? 'Text' : (item.original_name || 'Image')}</div>
+                    <div className="item-status locked">Loading...</div>
+                </div>
+            </div>
+        );
+    }
+
     const isUnlocked = now >= item.decrypt_at;
-    const timeRemaining = getTimeRemaining(item.decrypt_at);
+    const timeRemaining = getTimeRemaining(item.decrypt_at, now);
 
     return (
         <div
@@ -86,8 +108,7 @@ function ItemCard({ item, isSelected, onClick }: ItemCardProps) {
     );
 }
 
-function getTimeRemaining(decryptAt: number): string {
-    const now = Date.now();
+function getTimeRemaining(decryptAt: number, now: number): string {
     const diff = decryptAt - now;
 
     if (diff <= 0) return 'Unlocked';

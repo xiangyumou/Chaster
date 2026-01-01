@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
  * GET /api/health - Health check endpoint (no authentication required)
  */
 export async function GET() {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const packageJson = require('../../../../package.json');
 
     return NextResponse.json({

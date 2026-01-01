@@ -116,7 +116,7 @@ describe('New API Endpoints (P0-P2)', () => {
 
     // ========== Batch Delete API Tests ==========
     describe('POST /items/batch/delete', () => {
-        let deleteTestIds: string[] = [];
+        const deleteTestIds: string[] = [];
 
         beforeAll(async () => {
             // Create items specifically for delete tests
