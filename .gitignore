@@ -79,3 +79,5 @@ next-env.d.ts
 *.temp
 .cache/
 .temp/
+
+SOP
