@@ -104,7 +104,7 @@ async function createTestToken() {
     // So the token creation will work fine HERE.
     // The question is if the TESTS will see the correct DATABASE_URL.
     // Import dynamically
-    const { getPrismaClient } = await import('../src/lib/prisma.js');
+    const { getPrismaClient } = await import('@/lib/prisma');
     const db = getPrismaClient();
 
     const unitTestToken = process.env.TEST_TOKEN || 'tok_test_integration_fixed';
