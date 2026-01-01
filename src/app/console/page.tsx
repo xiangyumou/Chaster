@@ -177,7 +177,7 @@ export default function DashboardPage() {
                                 NODE_ENV: production
                             </div>
                             <div className="text-xs font-mono text-foreground overflow-hidden break-all mt-1">
-                                DB: SQLite (Prisma)
+                                DB: PostgreSQL (Prisma)
                             </div>
                         </div>
                     </div>

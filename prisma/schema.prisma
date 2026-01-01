@@ -3,10 +3,11 @@
 
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -20,7 +21,7 @@ model Item {
   roundNumber   BigInt   @map("round_number")
   createdAt     BigInt   @map("created_at")
   layerCount    Int      @default(1) @map("layer_count")
-  metadata      String?  @map("metadata")  // JSON string (SQLite doesn't have native JSON type)
+  metadata      String?  @map("metadata")  // JSON string for flexibility
   
   @@index([decryptAt], name: "idx_items_decrypt_at")
   @@index([createdAt], name: "idx_items_created_at")

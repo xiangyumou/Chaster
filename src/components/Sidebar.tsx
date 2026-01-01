@@ -1,6 +1,6 @@
 'use client';
 
-import { ItemListView } from '@/lib/db';
+import { ItemListView } from '@/lib/types';
 
 interface SidebarProps {
     items: ItemListView[];

@@ -135,8 +135,7 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        // For status and date filtering, we need to fetch all and filter in memory
-        // (SQLite doesn't support computed columns in WHERE)
+        // For status and date filtering, we fetch all and filter in memory for flexibility
         const allItems = await prisma.item.findMany({
             where,
             orderBy: query.sort.startsWith('created')

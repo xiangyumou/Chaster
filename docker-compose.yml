@@ -1,4 +1,20 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: chaster-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-chaster}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chaster_password}
+      POSTGRES_DB: ${POSTGRES_DB:-chaster}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chaster} -d ${POSTGRES_DB:-chaster}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   app:
     build:
       context: .
@@ -6,8 +22,13 @@ services:
     container_name: chaster-app
     ports:
       - "3000:3000"
-    volumes:
-      - ./data:/app/data
-    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
-      - NODE_ENV=production
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-chaster}:${POSTGRES_PASSWORD:-chaster_password}@db:5432/${POSTGRES_DB:-chaster}
+    restart: always
+
+volumes:
+  postgres_data:

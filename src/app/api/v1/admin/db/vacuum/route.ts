@@ -1,15 +1,13 @@
 import { NextRequest } from 'next/server';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+import { getPrismaClient } from '@/lib/prisma';
 
 /**
  * @swagger
  * /admin/db/vacuum:
  *   post:
  *     summary: Vacuum database
- *     description: Run SQLite VACUUM command to optimize and compact the database file.
+ *     description: Run PostgreSQL VACUUM ANALYZE to optimize the database.
  *     tags: [Admin]
  *     responses:
  *       200:
@@ -21,12 +19,8 @@ import fs from 'fs';
  *               properties:
  *                 success:
  *                   type: boolean
- *                 sizeBefore:
- *                   type: integer
- *                 sizeAfter:
- *                   type: integer
- *                 savedBytes:
- *                   type: integer
+ *                 message:
+ *                   type: string
  *       401:
  *         description: Unauthorized
  *       500:
@@ -37,35 +31,14 @@ export async function POST(request: NextRequest) {
     if ('error' in authResult) return authResult.error;
 
     try {
-        const projectRoot = process.cwd();
-        const dbPath = path.join(projectRoot, 'data', 'chaster.db');
+        const prisma = getPrismaClient();
 
-        if (!fs.existsSync(dbPath)) {
-            return errorResponse('DB_NOT_FOUND', 'Database file not found', 404);
-        }
-
-        // Get size before
-        const sizeBefore = fs.statSync(dbPath).size;
-
-        // Open a separate connection for vacuum
-        const db = new Database(dbPath);
-
-        try {
-            // Run VACUUM
-            db.exec('VACUUM');
-        } finally {
-            db.close();
-        }
-
-        // Get size after
-        const sizeAfter = fs.statSync(dbPath).size;
+        // Run VACUUM ANALYZE on PostgreSQL
+        await prisma.$executeRawUnsafe('VACUUM ANALYZE');
 
         return successResponse({
             success: true,
-            sizeBefore,
-            sizeAfter,
-            savedBytes: sizeBefore - sizeAfter,
-            savedMB: Math.round((sizeBefore - sizeAfter) / 1024 / 1024 * 100) / 100,
+            message: 'VACUUM ANALYZE completed successfully',
         });
     } catch (error: unknown) {
         console.error('Vacuum error:', error);

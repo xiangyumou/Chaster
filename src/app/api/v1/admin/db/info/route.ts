@@ -1,15 +1,13 @@
 import { NextRequest } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
-import path from 'path';
-import fs from 'fs';
 
 /**
  * @swagger
  * /admin/db/info:
  *   get:
  *     summary: Get database info
- *     description: Get information about the database including size, type, and record counts.
+ *     description: Get information about the database including type and record counts.
  *     tags: [Admin]
  *     responses:
  *       200:
@@ -21,10 +19,6 @@ import fs from 'fs';
  *               properties:
  *                 type:
  *                   type: string
- *                 path:
- *                   type: string
- *                 sizeBytes:
- *                   type: integer
  *                 itemCount:
  *                   type: integer
  *                 tokenCount:
@@ -42,21 +36,6 @@ export async function GET(request: NextRequest) {
 
     try {
         const prisma = getPrismaClient();
-        const projectRoot = process.cwd();
-        const dbPath = path.join(projectRoot, 'data', 'chaster.db');
-
-        // Get file size
-        let sizeBytes = 0;
-        if (fs.existsSync(dbPath)) {
-            const stats = fs.statSync(dbPath);
-            sizeBytes = stats.size;
-
-            // Include WAL file size if exists
-            const walPath = `${dbPath}-wal`;
-            if (fs.existsSync(walPath)) {
-                sizeBytes += fs.statSync(walPath).size;
-            }
-        }
 
         // Get record counts
         const [itemCount, tokenCount, logCount, configCount] = await Promise.all([
@@ -66,11 +45,20 @@ export async function GET(request: NextRequest) {
             prisma.systemConfig.count(),
         ]);
 
+        // Get database size (PostgreSQL specific)
+        let databaseSize = 'Unknown';
+        try {
+            const result = await prisma.$queryRaw<[{ pg_size_pretty: string }]>`
+                SELECT pg_size_pretty(pg_database_size(current_database())) as pg_size_pretty
+            `;
+            databaseSize = result[0]?.pg_size_pretty || 'Unknown';
+        } catch {
+            // Size query may fail in some environments
+        }
+
         return successResponse({
-            type: 'sqlite',
-            path: dbPath,
-            sizeBytes,
-            sizeMB: Math.round(sizeBytes / 1024 / 1024 * 100) / 100,
+            type: 'postgresql',
+            databaseSize,
             itemCount,
             tokenCount,
             logCount,
