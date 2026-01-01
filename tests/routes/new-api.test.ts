@@ -29,17 +29,18 @@ const BASE_URL = 'http://localhost:3000/api/v1';
 describe('New API Endpoints (P0-P2)', () => {
     function createRequest(method: string, path: string, body?: unknown, queryParams?: string) {
         const url = `${BASE_URL}${path}${queryParams || ''}`;
-        const init: RequestInit = {
-            method,
-            headers: {
-                'Authorization': `Bearer ${TEST_TOKEN}`,
-                'Content-Type': 'application/json',
-            },
+        const headers = {
+            'Authorization': `Bearer ${TEST_TOKEN}`,
+            'Content-Type': 'application/json',
         };
         if (body) {
-            init.body = JSON.stringify(body);
+            return new NextRequest(url, {
+                method,
+                headers,
+                body: JSON.stringify(body),
+            });
         }
-        return new NextRequest(url, init);
+        return new NextRequest(url, { method, headers });
     }
 
     const createdIds: string[] = [];
