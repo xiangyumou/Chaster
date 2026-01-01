@@ -15,6 +15,12 @@ export default defineConfig({
             reporter: ['text', 'json', 'html'],
             include: ['src/app/api/**/*.ts', 'src/lib/**/*.ts'],
             exclude: ['src/app/api/auth/[...nextauth]/route.ts', '**/*.test.ts']
+        },
+        env: {
+            // Ensure these match tests/test-db-setup.ts
+            TEST_TOKEN: 'tok_test_integration_fixed',
+            UNIT_TEST_TOKEN: 'tok_test_integration_fixed',
+            DATABASE_URL: 'postgresql://chaster:chaster_password@localhost:5432/chaster'
         }
     },
 });
