@@ -20,10 +20,14 @@ export async function setup() {
         console.log(`Using database ${TEST_DB_NAME} in container chaster-db...`);
 
         // Ensure DB exists (it might validly fail if it exists, which is fine)
-        try {
-            execSync(`docker exec chaster-db createdb -U ${DB_USER} ${TEST_DB_NAME}`, { stdio: 'ignore' });
-        } catch (e) {
-            // Ignore existence error
+        if (process.env.GITHUB_ACTIONS || process.env.CI) {
+            console.log('Running in CI/GitHub Actions, skipping docker exec for DB creation');
+        } else {
+            try {
+                execSync(`docker exec chaster-db createdb -U ${DB_USER} ${TEST_DB_NAME}`, { stdio: 'ignore' });
+            } catch (e) {
+                // Ignore existence error
+            }
         }
 
         console.log('✅ Test database ready');
