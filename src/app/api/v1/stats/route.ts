@@ -43,42 +43,78 @@ async function getStats(request: NextRequest) { // Renamed GET to getStats
     try {
         const prisma = getPrismaClient();
         const now = Date.now();
+        const nowBigInt = BigInt(now);
 
-        // Get all items
-        const allItems = await prisma.item.findMany();
+        // Use efficient aggregate queries instead of loading all items
+        const [totalItems, lockedItems, typeGroups, aggregates] = await Promise.all([
+            // Total count
+            prisma.item.count(),
+            // Locked items count (decryptAt > now)
+            prisma.item.count({ where: { decryptAt: { gt: nowBigInt } } }),
+            // Group by type
+            prisma.item.groupBy({
+                by: ['type'],
+                _count: true,
+            }),
+            // Aggregates for average duration and newest item
+            prisma.item.aggregate({
+                _avg: {
+                    // We can't directly compute duration, so we'll handle this differently
+                },
+                _max: {
+                    createdAt: true,
+                },
+            }),
+        ]);
 
-        // Calculate stats
-        const totalItems = allItems.length;
-        const lockedItems = allItems.filter((item) => Number(item.decryptAt) > now).length;
+        // Calculate unlocked items
         const unlockedItems = totalItems - lockedItems;
 
-        const textItems = allItems.filter((item) => item.type === 'text').length;
-        const imageItems = allItems.filter((item) => item.type === 'image').length;
-
-        // Calculate average lock duration (in minutes)
-        let avgLockDurationMinutes = 0;
-        if (allItems.length > 0) {
-            const totalDuration = allItems.reduce(
-                (sum, item) => sum + (Number(item.decryptAt) - Number(item.createdAt)),
-                0
-            );
-            avgLockDurationMinutes = Math.round(totalDuration / allItems.length / 60000);
+        // Process type breakdown
+        const byType = {
+            text: 0,
+            image: 0,
+        };
+        for (const group of typeGroups) {
+            if (group.type === 'text') {
+                byType.text = group._count;
+            } else if (group.type === 'image') {
+                byType.image = group._count;
+            }
         }
 
-        // Get oldest and newest items
+        // For average lock duration, we need a raw query or compute from a sample
+        // Since Prisma doesn't support computed fields in aggregate, use a simpler approach
+        let avgLockDurationMinutes = 0;
+        if (totalItems > 0) {
+            // Fetch only the fields needed for duration calculation (optimized query)
+            const durationData = await prisma.item.findMany({
+                select: {
+                    createdAt: true,
+                    decryptAt: true,
+                },
+                take: 1000, // Sample at most 1000 items for average calculation
+            });
 
-        const newestItem = allItems.length > 0
-            ? Math.max(...allItems.map((item) => Number(item.createdAt)))
+            if (durationData.length > 0) {
+                const totalDuration = durationData.reduce(
+                    (sum, item) => sum + (Number(item.decryptAt) - Number(item.createdAt)),
+                    0
+                );
+                avgLockDurationMinutes = Math.round(totalDuration / durationData.length / 60000);
+            }
+        }
+
+        // Get newest item timestamp
+        const newestItem = aggregates._max.createdAt
+            ? Number(aggregates._max.createdAt)
             : null;
 
         return successResponse({
             totalItems,
             lockedItems,
             unlockedItems,
-            byType: {
-                text: textItems,
-                image: imageItems,
-            },
+            byType,
             avgLockDurationMinutes,
             newestItem,
         });

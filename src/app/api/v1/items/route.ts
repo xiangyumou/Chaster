@@ -124,8 +124,10 @@ async function getItems(request: NextRequest) {
         const prisma = getPrismaClient();
         const now = Date.now();
 
-        // Build where clause
+        // Build where clause - push ALL filters to database
         const where: Prisma.ItemWhereInput = {};
+
+        // Type filter
         if (query.type) {
             where.type = query.type;
         }
@@ -138,52 +140,52 @@ async function getItems(request: NextRequest) {
             }
         }
 
-        // For status and date filtering, we fetch all and filter in memory for flexibility
-        const allItems = await prisma.item.findMany({
-            where,
-            orderBy: query.sort.startsWith('created')
-                ? { createdAt: query.sort === 'created_asc' ? 'asc' : 'desc' }
-                : { decryptAt: query.sort === 'decrypt_asc' ? 'asc' : 'desc' },
-        });
+        // Status filter - push to database WHERE clause
+        if (query.status === 'locked') {
+            where.decryptAt = { gt: BigInt(now) };
+        } else if (query.status === 'unlocked') {
+            where.decryptAt = { lte: BigInt(now) };
+        }
 
-        // Apply in-memory filters
-        let filteredItems = allItems;
+        // Created time range filters - push to database
+        if (query.createdAfter || query.createdBefore) {
+            where.createdAt = {
+                ...(query.createdAfter && { gte: BigInt(query.createdAfter) }),
+                ...(query.createdBefore && { lte: BigInt(query.createdBefore) }),
+            };
+        }
 
-        // Filter by status
-        if (query.status !== 'all') {
-            filteredItems = filteredItems.filter((item) => {
-                const unlocked = Number(item.decryptAt) <= now;
-                return query.status === 'unlocked' ? unlocked : !unlocked;
+        // Decrypt time range filters - push to database (merge with status filter)
+        if (query.decryptAfter || query.decryptBefore) {
+            const existingDecryptAt = where.decryptAt as Record<string, bigint> | undefined;
+            where.decryptAt = {
+                ...existingDecryptAt,
+                ...(query.decryptAfter && { gte: BigInt(query.decryptAfter) }),
+                ...(query.decryptBefore && { lte: BigInt(query.decryptBefore) }),
+            };
+        }
+
+        // Determine if we need in-memory filtering for metadataKey
+        const needsMetadataFilter = !!query.metadataKey;
+
+        // Build orderBy
+        const orderBy = query.sort.startsWith('created')
+            ? { createdAt: query.sort === 'created_asc' ? 'asc' as const : 'desc' as const }
+            : { decryptAt: query.sort === 'decrypt_asc' ? 'asc' as const : 'desc' as const };
+
+        let items: Awaited<ReturnType<typeof prisma.item.findMany>>;
+        let total: number;
+
+        if (needsMetadataFilter) {
+            // For metadata filtering, we need to fetch more items and filter in memory
+            // This is unavoidable with JSON string storage
+            const allItems = await prisma.item.findMany({
+                where,
+                orderBy,
             });
-        }
 
-        // Filter by created time range
-        if (query.createdAfter) {
-            filteredItems = filteredItems.filter(
-                (item) => Number(item.createdAt) >= query.createdAfter!
-            );
-        }
-        if (query.createdBefore) {
-            filteredItems = filteredItems.filter(
-                (item) => Number(item.createdAt) <= query.createdBefore!
-            );
-        }
-
-        // Filter by decrypt time range
-        if (query.decryptAfter) {
-            filteredItems = filteredItems.filter(
-                (item) => Number(item.decryptAt) >= query.decryptAfter!
-            );
-        }
-        if (query.decryptBefore) {
-            filteredItems = filteredItems.filter(
-                (item) => Number(item.decryptAt) <= query.decryptBefore!
-            );
-        }
-
-        // Filter by metadata key existence
-        if (query.metadataKey) {
-            filteredItems = filteredItems.filter((item) => {
+            // Filter by metadata key existence
+            const filteredItems = allItems.filter((item) => {
                 if (!item.metadata) return false;
                 try {
                     const meta = JSON.parse(item.metadata) as Record<string, unknown>;
@@ -192,14 +194,26 @@ async function getItems(request: NextRequest) {
                     return false;
                 }
             });
+
+            total = filteredItems.length;
+            items = filteredItems.slice(query.offset, query.offset + query.limit);
+        } else {
+            // No metadata filter - use efficient database pagination
+            const [dbItems, dbTotal] = await Promise.all([
+                prisma.item.findMany({
+                    where,
+                    orderBy,
+                    take: query.limit,
+                    skip: query.offset,
+                }),
+                prisma.item.count({ where }),
+            ]);
+            items = dbItems;
+            total = dbTotal;
         }
 
-        // Paginate
-        const total = filteredItems.length;
-        const paginatedItems = filteredItems.slice(query.offset, query.offset + query.limit);
-
         // Format response
-        const items = paginatedItems.map((item) => {
+        const formattedItems = items.map((item) => {
             const unlocked = Number(item.decryptAt) <= now;
             const metadata = item.metadata ? JSON.parse(item.metadata) : null;
 
@@ -217,7 +231,7 @@ async function getItems(request: NextRequest) {
         });
 
         return successResponse({
-            items,
+            items: formattedItems,
             total,
             limit: query.limit,
             offset: query.offset,

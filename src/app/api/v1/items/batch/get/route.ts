@@ -4,11 +4,15 @@ import { authenticate, successResponse, errorResponse } from '@/lib/auth';
 import { decrypt } from '@/lib/decryption';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import pLimit from 'p-limit';
 
 const batchGetSchema = z.object({
     ids: z.array(z.string()).min(1).max(100),
     includeContent: z.boolean().optional().default(true),
 });
+
+// Limit concurrent decryptions to prevent CPU saturation and drand API rate limiting
+const DECRYPTION_CONCURRENCY_LIMIT = 10;
 
 /**
  * Core batch get logic shared between GET and POST handlers
@@ -25,9 +29,12 @@ async function handleBatchGet(ids: string[], includeContent: boolean) {
     const foundIds = new Set(items.map((item) => item.id));
     const notFoundIds = ids.filter((id) => !foundIds.has(id));
 
-    // Process items with optional decryption
+    // Create concurrency limiter for decryption operations
+    const limit = pLimit(DECRYPTION_CONCURRENCY_LIMIT);
+
+    // Process items with optional decryption (with concurrency limit)
     const processedItems = await Promise.all(
-        items.map(async (item) => {
+        items.map((item) => limit(async () => {
             const unlocked = Number(item.decryptAt) <= now;
             const metadata = item.metadata ? JSON.parse(item.metadata) : null;
 
@@ -62,7 +69,7 @@ async function handleBatchGet(ids: string[], includeContent: boolean) {
             }
 
             return result;
-        })
+        }))
     );
 
     return successResponse({

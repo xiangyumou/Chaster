@@ -102,8 +102,9 @@ export async function GET(request: NextRequest) {
 
         const prisma = getPrismaClient();
 
-        // Build where clause
+        // Build where clause - push ALL filters to database
         const where: Record<string, unknown> = {};
+
         if (query.token) {
             where.token = query.token;
         }
@@ -114,40 +115,32 @@ export async function GET(request: NextRequest) {
             where.statusCode = query.statusCode;
         }
 
-        // Fetch logs
-        const allLogs = await prisma.apiLog.findMany({
-            where,
-            orderBy: { timestamp: 'desc' },
-        });
-
-        // Apply in-memory filters for more complex conditions
-        let filteredLogs = allLogs;
-
+        // Push endpoint contains filter to database
         if (query.endpoint) {
-            filteredLogs = filteredLogs.filter((log) =>
-                log.endpoint.includes(query.endpoint!)
-            );
-        }
-        if (query.startTime) {
-            filteredLogs = filteredLogs.filter(
-                (log) => Number(log.timestamp) >= query.startTime!
-            );
-        }
-        if (query.endTime) {
-            filteredLogs = filteredLogs.filter(
-                (log) => Number(log.timestamp) <= query.endTime!
-            );
+            where.endpoint = { contains: query.endpoint };
         }
 
-        // Paginate
-        const total = filteredLogs.length;
-        const paginatedLogs = filteredLogs.slice(
-            query.offset,
-            query.offset + query.limit
-        );
+        // Push timestamp range filters to database
+        if (query.startTime || query.endTime) {
+            where.timestamp = {
+                ...(query.startTime && { gte: BigInt(query.startTime) }),
+                ...(query.endTime && { lte: BigInt(query.endTime) }),
+            };
+        }
+
+        // Use efficient database pagination with parallel count query
+        const [logs, total] = await Promise.all([
+            prisma.apiLog.findMany({
+                where,
+                orderBy: { timestamp: 'desc' },
+                take: query.limit,
+                skip: query.offset,
+            }),
+            prisma.apiLog.count({ where }),
+        ]);
 
         // Format response
-        const logs = paginatedLogs.map((log) => ({
+        const formattedLogs = logs.map((log) => ({
             id: log.id,
             token: log.token,
             endpoint: log.endpoint,
@@ -158,7 +151,7 @@ export async function GET(request: NextRequest) {
         }));
 
         return successResponse({
-            logs,
+            logs: formattedLogs,
             total,
             limit: query.limit,
             offset: query.offset,
