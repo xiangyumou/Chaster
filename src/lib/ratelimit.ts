@@ -24,13 +24,21 @@ export async function checkRateLimit(
     limit: number = 100,
     windowMs: number = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10)
 ): Promise<RateLimitResult> {
+    // Check if fail-open is enabled (default: false for security)
+    const failOpen = process.env.RATE_LIMIT_FAIL_OPEN === 'true';
+
     try {
         const redis = getRedisClient();
 
         // Check Redis connection
         if (!isRedisConnected()) {
-            logger.warn('Redis not connected, allowing request (fail-open)');
-            return { allowed: true, remaining: limit, resetAt: Date.now() + windowMs };
+            if (failOpen) {
+                logger.warn('Redis not connected, allowing request (fail-open mode)');
+                return { allowed: true, remaining: limit, resetAt: Date.now() + windowMs };
+            } else {
+                logger.error('Redis not connected, denying request (fail-closed mode)');
+                return { allowed: false, remaining: 0, resetAt: Date.now() + windowMs };
+            }
         }
 
         // Calculate current window
@@ -53,9 +61,13 @@ export async function checkRateLimit(
 
         return { allowed, remaining, resetAt };
     } catch (error) {
-        // Fail-open: allow request if Redis fails
-        logger.error('Rate limit check failed, allowing request (fail-open)', error);
-        return { allowed: true, remaining: limit, resetAt: Date.now() + windowMs };
+        if (failOpen) {
+            logger.error('Rate limit check failed, allowing request (fail-open mode)', error);
+            return { allowed: true, remaining: limit, resetAt: Date.now() + windowMs };
+        } else {
+            logger.error('Rate limit check failed, denying request (fail-closed mode)', error);
+            return { allowed: false, remaining: 0, resetAt: Date.now() + windowMs };
+        }
     }
 }
 
