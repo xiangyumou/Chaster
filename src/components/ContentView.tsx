@@ -49,12 +49,14 @@ export default function ContentView({ selectedId, onDelete, onItemUpdated, onMen
         fetchItem();
     }, [selectedId]);
 
-    // Countdown timer
+    // Countdown timer with visibility API optimization
     useEffect(() => {
         if (!item || item.unlocked) {
             setCountdown('');
             return;
         }
+
+        let intervalId: ReturnType<typeof setInterval> | null = null;
 
         const updateCountdown = () => {
             const now = Date.now();
@@ -76,10 +78,41 @@ export default function ContentView({ selectedId, onDelete, onItemUpdated, onMen
             setCountdown(`${days}d ${hours}h ${minutes}m ${seconds}s`);
         };
 
-        updateCountdown();
-        const interval = setInterval(updateCountdown, 1000);
+        const startInterval = () => {
+            if (!intervalId) {
+                updateCountdown();
+                intervalId = setInterval(updateCountdown, 1000);
+            }
+        };
 
-        return () => clearInterval(interval);
+        const stopInterval = () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+        };
+
+        // Handle visibility change to pause/resume timer
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                startInterval();
+            } else {
+                stopInterval();
+            }
+        };
+
+        // Start timer if page is visible
+        if (document.visibilityState === 'visible') {
+            startInterval();
+        }
+
+        // Listen for visibility changes
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            stopInterval();
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, [item]);
 
     const handleDelete = async () => {

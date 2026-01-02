@@ -21,7 +21,8 @@
     "stress:extreme": "tsx scripts/stress-test-comprehensive.ts --scenario extreme --mixed",
     "stress:all": "tsx scripts/stress-test-runner.ts",
     "sdk:generate": "tsx scripts/generate-client.ts",
-    "sdk:build": "cd sdk && npm install && npm run build"
+    "sdk:build": "cd sdk && npm install && npm run build",
+    "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -41,10 +42,12 @@
     "tailwind-merge": "^3.4.0",
     "tlock-js": "^0.9.0",
     "uuid": "^13.0.0",
+    "p-limit": "^7.2.0",
     "zod": "^4.2.1",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.1.1",
     "@tailwindcss/postcss": "^4",
     "@types/ioredis": "^4.28.10",
     "@types/node": "^20",
@@ -58,7 +61,6 @@
     "eslint-config-next": "16.0.10",
     "node-fetch": "^3.3.2",
     "openapi-typescript-codegen": "^0.30.0",
-    "p-limit": "^7.2.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",

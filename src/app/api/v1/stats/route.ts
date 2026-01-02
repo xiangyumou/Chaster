@@ -46,7 +46,7 @@ async function getStats(request: NextRequest) { // Renamed GET to getStats
         const nowBigInt = BigInt(now);
 
         // Use efficient aggregate queries instead of loading all items
-        const [totalItems, lockedItems, typeGroups, aggregates] = await Promise.all([
+        const [totalItems, lockedItems, typeGroups, maxCreatedAt] = await Promise.all([
             // Total count
             prisma.item.count(),
             // Locked items count (decryptAt > now)
@@ -56,11 +56,8 @@ async function getStats(request: NextRequest) { // Renamed GET to getStats
                 by: ['type'],
                 _count: true,
             }),
-            // Aggregates for average duration and newest item
+            // Get newest item timestamp
             prisma.item.aggregate({
-                _avg: {
-                    // We can't directly compute duration, so we'll handle this differently
-                },
                 _max: {
                     createdAt: true,
                 },
@@ -106,8 +103,8 @@ async function getStats(request: NextRequest) { // Renamed GET to getStats
         }
 
         // Get newest item timestamp
-        const newestItem = aggregates._max.createdAt
-            ? Number(aggregates._max.createdAt)
+        const newestItem = maxCreatedAt._max.createdAt
+            ? Number(maxCreatedAt._max.createdAt)
             : null;
 
         return successResponse({
