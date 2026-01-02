@@ -61,27 +61,19 @@ describe('Admin DB API (In-Process)', () => {
     });
 
     describe('POST /admin/db/backup', () => {
-        // No cleanup needed for Postgres implementation as it doesn't create files
-
-        it('should create a database backup or report DB not found', async () => {
+        it('should return PostgreSQL backup guidance message', async () => {
             const req = createRequest('POST', '/admin/db/backup');
             const res = await POST_BACKUP(req);
             const data = await res.json();
 
-            // Postgres implementation returns 200 with guidance message
-            if (res.status === 200) {
-                // Check for Postgres response format
-                if (data.message) {
-                    expect(data.message).toContain('PostgreSQL backup');
-                    expect(data.options).toBeInstanceOf(Array);
-                    expect(data.timestamp).toBeDefined();
-                } else {
-                    // Fallback for potential SQLite logic (if shared codebase)
-                    expect(data.backupPath).toBeDefined();
-                }
-            } else if (res.status === 404) {
-                expect(data.error.code).toBe('DB_NOT_FOUND');
-            }
+            // PostgreSQL implementation always returns 200 with guidance
+            expect(res.status).toBe(200);
+            expect(data.message).toContain('PostgreSQL backup');
+            expect(data.options).toBeInstanceOf(Array);
+            expect(data.options.length).toBeGreaterThan(0);
+            expect(data.timestamp).toBeDefined();
+            // Timestamp is epoch ms (number) or ISO string
+            expect(['number', 'string']).toContain(typeof data.timestamp);
         });
 
         it('should fail without authentication', async () => {
@@ -95,17 +87,13 @@ describe('Admin DB API (In-Process)', () => {
     });
 
     describe('POST /admin/db/vacuum', () => {
-        it('should run vacuum or report DB not found', async () => {
+        it('should run vacuum successfully', async () => {
             const req = createRequest('POST', '/admin/db/vacuum');
             const res = await POST_VACUUM(req);
             const data = await res.json();
 
-            if (res.status === 200) {
-                // If it returns success: true, it's good.
-                expect(data.success).toBe(true);
-            } else if (res.status === 404) {
-                expect(data.error.code).toBe('DB_NOT_FOUND');
-            }
+            expect(res.status).toBe(200);
+            expect(data.success).toBe(true);
         });
 
         it('should fail without authentication', async () => {

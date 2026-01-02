@@ -150,9 +150,9 @@ describe('Admin Logs API (In-Process)', () => {
             const data = await res.json();
 
             expect(res.status).toBe(200);
-            if (data.logs.length > 0) {
-                const log = data.logs[0];
-                // Note: Prisma returns id as number for SQLite autoincrement
+            expect(Array.isArray(data.logs)).toBe(true);
+            // forEach handles empty case safely - validation runs on each log
+            data.logs.forEach((log: { id: string | number; token: string; endpoint: string; method: string; statusCode: number; timestamp: number; duration: number }) => {
                 expect(['number', 'string']).toContain(typeof log.id);
                 expect(typeof log.token).toBe('string');
                 expect(typeof log.endpoint).toBe('string');
@@ -160,7 +160,7 @@ describe('Admin Logs API (In-Process)', () => {
                 expect(typeof log.statusCode).toBe('number');
                 expect(typeof log.timestamp).toBe('number');
                 expect(typeof log.duration).toBe('number');
-            }
+            });
         });
 
         it('should fail without authentication', async () => {

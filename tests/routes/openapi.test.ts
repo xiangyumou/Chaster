@@ -46,10 +46,10 @@ describe('OpenAPI JSON API (In-Process)', () => {
             const data = await res.json();
 
             expect(res.status).toBe(200);
-            // Check for components/securitySchemes if defined
-            if (data.components?.securitySchemes) {
-                expect(data.components.securitySchemes).toBeDefined();
-            }
+            // Security schemes should always be defined in our API spec
+            expect(data.components).toBeDefined();
+            expect(data.components.securitySchemes).toBeDefined();
+            expect(data.components.securitySchemes.BearerAuth).toBeDefined();
         });
 
         it('should return proper content type response', async () => {

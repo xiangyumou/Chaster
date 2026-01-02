@@ -81,9 +81,12 @@ describe('New API Endpoints (P0-P2)', () => {
             const data = await res.json();
 
             expect(res.status).toBe(200);
-            if (data.items.length > 0) {
-                expect(data.items[0].encryptedData).toBeDefined();
-            }
+            expect(Array.isArray(data.items)).toBe(true);
+            // Test creates items in beforeAll, so items should exist
+            // Use forEach to validate each item - handles empty safely
+            data.items.forEach((item: { encryptedData: string }) => {
+                expect(item.encryptedData).toBeDefined();
+            });
         });
 
         it('should export items filtered by status', async () => {

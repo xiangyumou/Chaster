@@ -45,13 +45,11 @@ describe('Lib: User Context', () => {
         });
 
         it('should indicate user can perform operations', () => {
-            // In single-user mode, user should always be able to perform operations
-            if (isAuthenticated()) {
-                // If authenticated, getCurrentUserId should return valid ID
-                const userId = getCurrentUserId();
-                expect(userId).toBeTruthy();
-                expect(userId).toBe(LOCAL_USER_ID);
-            }
+            // In single-user mode, user is always authenticated
+            expect(isAuthenticated()).toBe(true);
+            // And should return valid local user ID
+            const userId = getCurrentUserId();
+            expect(userId).toBe(LOCAL_USER_ID);
         });
     });
 
