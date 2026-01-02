@@ -23,6 +23,7 @@ async function generateClient() {
     await generate({
         input: spec, // Pass the object directly
         output: path.resolve(process.cwd(), 'sdk'),
+        // @ts-expect-error - 'client' is valid at runtime but missing in types
         client: 'fetch', // Use standard fetch
         useOptions: true,
         useUnionTypes: true,

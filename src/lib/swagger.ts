@@ -53,6 +53,17 @@ export const swaggerOptions: Options = {
                         timeRemainingMs: { type: 'integer', description: 'Milliseconds until decryption possible' },
                     },
                 },
+                ItemInput: {
+                    type: 'object',
+                    required: ['type', 'content'],
+                    properties: {
+                        type: { type: 'string', enum: ['text', 'image'] },
+                        content: { type: 'string' },
+                        durationMinutes: { type: 'integer', minimum: 1 },
+                        decryptAt: { type: 'integer', format: 'int64' },
+                        metadata: { type: 'object' },
+                    },
+                },
             },
         },
         security: [

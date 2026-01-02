@@ -9,9 +9,11 @@ export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { Error } from './models/Error';
 export type { Item } from './models/Item';
+export type { ItemInput } from './models/ItemInput';
 
 export { $Error } from './schemas/$Error';
 export { $Item } from './schemas/$Item';
+export { $ItemInput } from './schemas/$ItemInput';
 
 export { AdminService } from './services/AdminService';
 export { ExportService } from './services/ExportService';
