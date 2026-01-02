@@ -168,6 +168,12 @@ export const TEST_SCENARIOS: Record<string, ScenarioConfig> = {
         totalRequests: 1000,
         description: 'Maximum load test to find breaking points'
     },
+    ultra: {
+        name: 'Ultra Stress Test',
+        concurrency: 1000,
+        totalRequests: 5000,
+        description: 'Ultra-high concurrency for maximum throughput testing'
+    },
     sustained: {
         name: 'Sustained Load Test',
         concurrency: 100,

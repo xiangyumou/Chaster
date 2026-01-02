@@ -35,6 +35,7 @@ services:
       REDIS_URL: redis://redis:6379
       MOCK_DRAND: "true"
       API_TOKEN: ${API_TOKEN:-your_secure_token_here}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
     restart: always
 
   redis:
