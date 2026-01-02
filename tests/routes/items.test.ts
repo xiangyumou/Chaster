@@ -205,6 +205,82 @@ describe('Items API (In-Process Coverage)', () => {
         expect(res.status).toBe(400);
     });
 
+    it('should fail creation if both durationMinutes and decryptAt are missing', async () => {
+        const req = createRequest('POST', '/items', {
+            type: 'text',
+            content: 'Missing Params'
+        });
+        const res = await POST(req);
+        // Validated by superRefine
+        expect(res.status).toBe(400);
+        const data = await res.json();
+        expect(data.error.message).toContain('durationMinutes');
+    });
+
+    it('should list items with specific sorting (decrypt_asc)', async () => {
+        // Create another item with short duration to test sorting
+        const reqPost = createRequest('POST', '/items', {
+            type: 'text',
+            content: 'Short duration',
+            durationMinutes: 1
+        });
+        await POST(reqPost);
+
+        const req = createRequest('GET', '/items?sort=decrypt_asc');
+        const res = await GET(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(data.items.length).toBeGreaterThanOrEqual(2);
+
+        // Verify sorting order: earlier decrypt time first
+        const times = data.items.map((i: any) => i.decryptAt);
+        const sortedTimes = [...times].sort((a, b) => a - b);
+        expect(times).toEqual(sortedTimes);
+    });
+
+    it('should filter items by IDs', async () => {
+        const req = createRequest('GET', `/items?ids=${createdId}`);
+        const res = await GET(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(data.items.length).toBe(1);
+        expect(data.items[0].id).toBe(createdId);
+    });
+
+    it('should filter items by createdAfter', async () => {
+        const now = Date.now();
+        const req = createRequest('GET', `/items?createdAfter=${now - 10000}`); // Created in last 10s
+        const res = await GET(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(data.items.length).toBeGreaterThan(0);
+        data.items.forEach((item: any) => {
+            expect(item.createdAt).toBeGreaterThanOrEqual(now - 10000);
+        });
+    });
+
+    it('should filter items by metadataKey', async () => {
+        // Create item with metadata
+        const reqPost = createRequest('POST', '/items', {
+            type: 'text',
+            content: 'With Metadata',
+            durationMinutes: 10,
+            metadata: { specialty: 'testing' }
+        });
+        await POST(reqPost);
+
+        const req = createRequest('GET', '/items?metadataKey=specialty');
+        const res = await GET(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(200);
+        const found = data.items.find((i: any) => i.metadata && i.metadata.specialty === 'testing');
+        expect(found).toBeDefined();
+    });
+
     it('should delete item', async () => {
         const req = createRequest('DELETE', `/items/${createdId}`);
         const res = await DELETE(req, { params: Promise.resolve({ id: createdId }) });

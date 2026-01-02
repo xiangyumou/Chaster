@@ -98,5 +98,22 @@ describe('Lib: Prisma', () => {
             expect(result.id).toBeDefined();
             expect(result.type).toBe('image');
         });
+
+        it('should return null when finding non-existent item', async () => {
+            const prisma = getPrismaClient();
+            const found = await prisma.item.findUnique({
+                where: { id: 'non-existent-id-12345' },
+            });
+            expect(found).toBeNull();
+        });
+
+        it('should throw error when deleting non-existent item', async () => {
+            const prisma = getPrismaClient();
+            await expect(
+                prisma.item.delete({
+                    where: { id: 'non-existent-id-12345' },
+                })
+            ).rejects.toThrow();
+        });
     });
 });
