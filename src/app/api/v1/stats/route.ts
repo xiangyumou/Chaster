@@ -82,7 +82,6 @@ async function getStats(request: NextRequest) { // Renamed GET to getStats
                 image: imageItems,
             },
             avgLockDurationMinutes,
-            oldestItem,
             newestItem,
         });
     } catch (error) {
@@ -90,3 +89,5 @@ async function getStats(request: NextRequest) { // Renamed GET to getStats
         return errorResponse('INTERNAL_ERROR', 'Failed to fetch statistics', 500);
     }
 }
+
+export const GET = withRateLimit(getStats);

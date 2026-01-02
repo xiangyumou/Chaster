@@ -4,8 +4,8 @@
  * Tests all endpoints under various load conditions
  */
 
-import { MetricsCollector, formatMetrics } from '../tests/stress/metrics.js';
-import { EndpointTester, TEST_SCENARIOS, ScenarioConfig } from '../tests/stress/scenarios.js';
+import { MetricsCollector, formatMetrics } from '../tests/stress/metrics';
+import { EndpointTester, TEST_SCENARIOS, ScenarioConfig } from '../tests/stress/scenarios';
 
 interface TestOptions {
     scenario?: keyof typeof TEST_SCENARIOS;

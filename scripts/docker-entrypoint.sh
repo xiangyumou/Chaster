@@ -18,7 +18,7 @@ echo "✅ Database connection established!"
 echo "🔄 Initializing database schema..."
 
 # This ensures schema syntax compatibility
-node ./node_modules/prisma/build/index.js db push
+node ./node_modules/prisma/build/index.js db push --accept-data-loss
 
 echo "✅ Database schema synchronized!"
 

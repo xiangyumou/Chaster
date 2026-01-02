@@ -223,6 +223,10 @@ describeIntegration('Chaster Integration Tests', () => {
                 headers: authHeader(authToken),
                 body: JSON.stringify({ minutes: -10 })
             });
+            if (res.status === 401) {
+                const err = await res.json();
+                console.log('IT-10 Debug:', res.status, JSON.stringify(err));
+            }
             expect(res.status).toBe(400);
         });
     });

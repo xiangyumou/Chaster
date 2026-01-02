@@ -25,13 +25,13 @@ export async function checkRateLimit(
     windowMs: number = 60000
 ): Promise<RateLimitResult> {
     try {
+        const redis = getRedisClient();
+
         // Check Redis connection
         if (!isRedisConnected()) {
             logger.warn('Redis not connected, allowing request (fail-open)');
             return { allowed: true, remaining: limit, resetAt: Date.now() + windowMs };
         }
-
-        const redis = getRedisClient();
 
         // Calculate current window
         const now = Date.now();

@@ -30,8 +30,8 @@ export async function authenticate(
         };
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    const validToken = process.env.API_TOKEN;
+    const token = authHeader.substring(7).trim(); // Remove 'Bearer ' prefix and trim whitespace
+    const validToken = process.env.API_TOKEN?.trim(); // Trim expected token
 
     if (!validToken) {
         console.error('API_TOKEN env var is missing');
@@ -41,16 +41,17 @@ export async function authenticate(
     }
 
     // DEBUG: Temporary logs
-    console.log(`Auth Debug: Received=${token.length} chars, Valid=${validToken.length} chars`);
-    console.log(`Auth Debug: Received="${token}", Valid="${validToken}"`);
+    // console.log(`Auth Debug: Received=${token.length} chars, Valid=${validToken.length} chars`);
+    // console.log(`Auth Debug: Received="${token}", Valid="${validToken}"`);
 
     if (token.length !== validToken.length) {
+        console.warn(`Auth Failed: Length mismatch. Received=${token.length}, Expected=${validToken.length}`);
         return {
             error: NextResponse.json(
                 {
                     error: {
                         code: 'INVALID_TOKEN',
-                        message: 'Token is empty',
+                        message: 'Invalid API token format',
                     },
                 },
                 { status: 401 }
@@ -59,7 +60,7 @@ export async function authenticate(
     }
 
     // Validate token against environment variable
-    const expectedToken = process.env.API_TOKEN;
+    const expectedToken = validToken;
 
     if (!expectedToken) {
         console.error('API_TOKEN environment variable is not set');

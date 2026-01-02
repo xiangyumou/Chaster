@@ -6,6 +6,7 @@ import { encrypt } from '@/lib/tlock';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { withRateLimit } from '@/lib/rate-limit-wrapper';
 
 // Validation schemas
 const createItemSchema = z.object({
@@ -96,7 +97,7 @@ const querySchema = z.object({
  *       401:
  *         description: Unauthorized
  */
-export async function GET(request: NextRequest) {
+async function getItems(request: NextRequest) {
     // Authenticate
     const authResult = await authenticate(request);
     if ('error' in authResult) return authResult.error;
@@ -235,7 +236,7 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/v1/items - Create new encrypted item
  */
-export async function POST(request: NextRequest) {
+async function createItem(request: NextRequest) {
     // Authenticate
     const authResult = await authenticate(request);
     if ('error' in authResult) return authResult.error;
@@ -311,3 +312,6 @@ export async function POST(request: NextRequest) {
         return errorResponse('INTERNAL_ERROR', 'Failed to create item', 500);
     }
 }
+
+export const GET = withRateLimit(getItems);
+export const POST = withRateLimit(createItem);
