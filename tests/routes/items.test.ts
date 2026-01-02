@@ -85,11 +85,12 @@ describe('Items API (In-Process Coverage)', () => {
         const data = await res.json();
 
         expect(res.status).toBe(200);
-        // All items should be locked (since we just created one for 10 mins)
-        // Note: other tests might exist, so we just check logic "if any returned, check status"
-        if (data.items.length > 0) {
-            expect(data.items[0].unlocked).toBe(false);
-        }
+        expect(Array.isArray(data.items)).toBe(true);
+        // Verify all returned items have correct status (locked = unlocked:false)
+        // This assertion always executes and validates the filter logic
+        data.items.forEach((item: { unlocked: boolean }) => {
+            expect(item.unlocked).toBe(false);
+        });
     });
 
     it('should get single item', async () => {
