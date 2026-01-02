@@ -3,6 +3,7 @@ import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
 import { decrypt } from '@/lib/decryption';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const batchGetSchema = z.object({
     ids: z.array(z.string()).min(1).max(100),
@@ -98,8 +99,7 @@ export async function POST(request: NextRequest) {
                 } else if (validated.includeContent) {
                     try {
                         const decryptedBuffer = await decrypt(
-                            item.encryptedData,
-                            Number(item.roundNumber)
+                            item.encryptedData
                         );
                         if (item.type === 'text') {
                             result.content = decryptedBuffer.toString('utf-8');
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
             const message = error.issues?.[0]?.message || 'Validation error';
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
-        console.error('Batch get error:', error);
+        logger.error('Batch get error', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to batch get items', 500);
     }
 }

@@ -30,9 +30,8 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER:-chaster}:${POSTGRES_PASSWORD:-chaster_password}@db:5432/${POSTGRES_DB:-chaster}
-      NEXTAUTH_SECRET: your-secret-here
-      NEXTAUTH_URL: http://localhost:3000
       MOCK_DRAND: "true"
+      API_TOKEN: ${API_TOKEN:-your_secure_token_here}
     restart: always
 
 volumes:

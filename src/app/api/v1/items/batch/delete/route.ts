@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const deleteByIdsSchema = z.object({
     ids: z.array(z.string().uuid()).min(1).max(1000),
@@ -152,7 +153,7 @@ export async function POST(request: NextRequest) {
             const message = error.issues?.[0]?.message || 'Validation error';
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
-        console.error('Batch delete error:', error);
+        logger.error('Batch delete error', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to batch delete items', 500);
     }
 }

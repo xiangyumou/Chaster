@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 /**
  * @swagger
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
             newestItem,
         });
     } catch (error) {
-        console.error('Error fetching stats:', error);
+        logger.error('Error fetching stats', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to fetch statistics', 500);
     }
 }

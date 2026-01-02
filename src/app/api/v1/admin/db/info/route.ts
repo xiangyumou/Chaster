@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 /**
  * @swagger
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
             configCount,
         });
     } catch (error) {
-        console.error('DB info error:', error);
+        logger.error('DB info error', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to get database info', 500);
     }
 }

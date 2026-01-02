@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const querySchema = z.object({
     token: z.string().optional(),
@@ -167,7 +168,7 @@ export async function GET(request: NextRequest) {
             const message = error.issues?.[0]?.message || 'Validation error';
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
-        console.error('Log query error:', error);
+        logger.error('Log query error', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to query logs', 500);
     }
 }
@@ -247,7 +248,7 @@ export async function DELETE(request: NextRequest) {
             const message = error.issues?.[0]?.message || 'Validation error';
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
-        console.error('Log delete error:', error);
+        logger.error('Log delete error', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to delete logs', 500);
     }
 }

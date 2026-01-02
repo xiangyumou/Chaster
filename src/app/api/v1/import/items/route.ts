@@ -3,6 +3,7 @@ import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/lib/logger';
 
 const importItemSchema = z.object({
     id: z.string().uuid().optional(),
@@ -173,7 +174,7 @@ export async function POST(request: NextRequest) {
             const message = error.issues?.[0]?.message || 'Validation error';
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
-        console.error('Import error:', error);
+        logger.error('Import error', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to import items', 500);
     }
 }

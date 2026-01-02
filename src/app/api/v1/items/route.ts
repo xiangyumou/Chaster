@@ -4,6 +4,7 @@ import type { Prisma } from '@prisma/client';
 import { authenticate, errorResponse, successResponse } from '@/lib/auth';
 import { encrypt } from '@/lib/tlock';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
 // Validation schemas
@@ -226,7 +227,7 @@ export async function GET(request: NextRequest) {
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
 
-        console.error('Error fetching items:', error);
+        logger.error('Error fetching items', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to fetch items', 500);
     }
 }
@@ -306,7 +307,7 @@ export async function POST(request: NextRequest) {
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
 
-        console.error('Error creating item:', error);
+        logger.error('Error creating item', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to create item', 500);
     }
 }

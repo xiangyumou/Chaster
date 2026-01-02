@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const updateMetadataSchema = z.object({
     metadata: z.record(z.string(), z.any()),
@@ -105,7 +106,7 @@ export async function PATCH(
             const message = error.issues?.[0]?.message || 'Validation error';
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
-        console.error('Update metadata error:', error);
+        logger.error('Update metadata error', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to update metadata', 500);
     }
 }

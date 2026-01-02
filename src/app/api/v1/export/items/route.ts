@@ -3,6 +3,7 @@ import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
 import { decrypt } from '@/lib/decryption';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const querySchema = z.object({
     format: z.enum(['json', 'csv', 'ndjson']).optional().default('json'),
@@ -108,8 +109,7 @@ export async function GET(request: NextRequest) {
                 if (query.includeContent && unlocked) {
                     try {
                         const decryptedBuffer = await decrypt(
-                            item.encryptedData,
-                            Number(item.roundNumber)
+                            item.encryptedData
                         );
                         if (item.type === 'text') {
                             exportItem.content = decryptedBuffer.toString('utf-8');
@@ -187,7 +187,7 @@ export async function GET(request: NextRequest) {
             const message = error.issues?.[0]?.message || 'Validation error';
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
-        console.error('Export error:', error);
+        logger.error('Export error', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to export items', 500);
     }
 }

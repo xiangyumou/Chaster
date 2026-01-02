@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
 import { getPrismaClient } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 /**
  * @swagger
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
             message: 'VACUUM ANALYZE completed successfully',
         });
     } catch (error: unknown) {
-        console.error('Vacuum error:', error);
+        logger.error('Vacuum error', error);
         const message = error instanceof Error ? error.message : 'Unknown error';
         return errorResponse('VACUUM_FAILED', `Vacuum failed: ${message}`, 500);
     }

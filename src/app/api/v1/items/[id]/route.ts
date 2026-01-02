@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, errorResponse, successResponse } from '@/lib/auth';
 import { decrypt } from '@/lib/decryption';
+import { logger } from '@/lib/logger';
 
 /**
  * @swagger
@@ -90,7 +91,7 @@ export async function GET(
                     response.content = decryptedBuffer.toString('base64');
                 }
             } catch (error) {
-                console.error('Decryption failed:', error);
+                logger.error('Decryption failed', error);
                 return errorResponse('DECRYPTION_FAILED', 'Failed to decrypt content', 500);
             }
         } else {
@@ -100,7 +101,7 @@ export async function GET(
 
         return successResponse(response);
     } catch (error) {
-        console.error('Error fetching item:', error);
+        logger.error('Error fetching item', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to fetch item', 500);
     }
 }
@@ -156,7 +157,7 @@ export async function DELETE(
 
         return successResponse({ success: true });
     } catch (error) {
-        console.error('Error deleting item:', error);
+        logger.error('Error deleting item', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to delete item', 500);
     }
 }

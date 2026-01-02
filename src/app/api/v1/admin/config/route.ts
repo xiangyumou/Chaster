@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const createConfigSchema = z.object({
     key: z.string().min(1).max(100),
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
 
         return successResponse({ config: configObj });
     } catch (error) {
-        console.error('Config get error:', error);
+        logger.error('Config get error', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to get config', 500);
     }
 }
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest) {
             const message = error.issues?.[0]?.message || 'Validation error';
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
-        console.error('Config set error:', error);
+        logger.error('Config set error', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to set config', 500);
     }
 }

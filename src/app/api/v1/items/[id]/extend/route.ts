@@ -4,6 +4,7 @@ import { authenticate, errorResponse, successResponse } from '@/lib/auth';
 import { decrypt } from '@/lib/decryption';
 import { encrypt } from '@/lib/tlock';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const extendSchema = z.object({
     minutes: z.number().int().positive("Minutes must be positive"),
@@ -78,7 +79,7 @@ export async function POST(
             try {
                 contentToEncrypt = await decrypt(item.encryptedData);
             } catch (error) {
-                console.error('Decryption failed during extend:', error);
+                logger.error('Decryption failed during extend', error);
                 return errorResponse('DECRYPTION_FAILED', 'Failed to decrypt content for re-encryption', 500);
             }
         } else {
@@ -121,7 +122,7 @@ export async function POST(
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
 
-        console.error('Error extending item:', error);
+        logger.error('Error extending item', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to extend item', 500);
     }
 }

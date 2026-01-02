@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const updateConfigSchema = z.object({
     value: z.string(),
@@ -52,7 +53,7 @@ export async function GET(
             value: config.value,
         });
     } catch (error) {
-        console.error('Config get error:', error);
+        logger.error('Config get error', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to get config', 500);
     }
 }
@@ -116,7 +117,7 @@ export async function PUT(
             const message = error.issues?.[0]?.message || 'Validation error';
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
-        console.error('Config update error:', error);
+        logger.error('Config update error', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to update config', 500);
     }
 }
@@ -168,7 +169,7 @@ export async function DELETE(
 
         return successResponse({ success: true });
     } catch (error) {
-        console.error('Config delete error:', error);
+        logger.error('Config delete error', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to delete config', 500);
     }
 }
