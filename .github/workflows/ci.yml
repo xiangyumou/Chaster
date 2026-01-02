@@ -62,7 +62,7 @@ jobs:
           npm run build
           node .next/standalone/server.js &
           # Wait for app to be ready
-          npx wait-on http://localhost:3000/api/v1/items -t 60000
+          npx wait-on http://localhost:3000/api/health -t 60000
           # Run integration tests
           npm run test:integration
 
