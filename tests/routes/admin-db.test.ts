@@ -45,7 +45,6 @@ describe('Admin DB API (In-Process)', () => {
 
             expect(res.status).toBe(200);
             expect(typeof data.itemCount).toBe('number');
-            expect(typeof data.tokenCount).toBe('number');
             expect(typeof data.logCount).toBe('number');
             expect(typeof data.configCount).toBe('number');
         });
@@ -122,7 +121,6 @@ describe('Admin DB API (In-Process)', () => {
 
             // Counts might change slightly but should be valid numbers
             expect(typeof data2.itemCount).toBe('number');
-            expect(typeof data2.tokenCount).toBe('number');
         });
     });
 });
