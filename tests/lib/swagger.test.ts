@@ -22,12 +22,13 @@ describe('Lib: Swagger', () => {
             const servers = definition.servers as Array<{ url: string; description: string }>;
             expect(Array.isArray(servers)).toBe(true);
             expect(servers.length).toBeGreaterThan(0);
-            // Should have development server
-            const devServer = servers.find((s) =>
-                s.description.includes('Development')
+            // Should have API server
+            const apiServer = servers.find((s) =>
+                s.description.includes('API Server')
             );
-            expect(devServer).toBeDefined();
-            expect(devServer!.url).toContain('localhost');
+            expect(apiServer).toBeDefined();
+            // Default assumes localhost if env not set
+            expect(apiServer!.url).toContain('localhost');
         });
 
         it('should define BearerAuth security scheme', () => {

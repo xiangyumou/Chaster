@@ -22,7 +22,7 @@ export interface RateLimitResult {
 export async function checkRateLimit(
     key: string,
     limit: number = 100,
-    windowMs: number = 60000
+    windowMs: number = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10)
 ): Promise<RateLimitResult> {
     try {
         const redis = getRedisClient();
@@ -67,7 +67,7 @@ export async function checkRateLimit(
  */
 export async function getRateLimitStats(
     key: string,
-    windowMs: number = 60000
+    windowMs: number = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10)
 ): Promise<{ count: number; resetAt: number } | null> {
     try {
         if (!isRedisConnected()) {

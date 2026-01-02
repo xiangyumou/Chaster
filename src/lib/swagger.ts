@@ -13,12 +13,8 @@ export const swaggerOptions: Options = {
         },
         servers: [
             {
-                url: 'http://localhost:3000/api/v1',
-                description: 'Local Development Server',
-            },
-            {
-                url: '/api/v1',
-                description: 'Relative path (for production)',
+                url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/api/v1',
+                description: 'API Server',
             },
         ],
         components: {

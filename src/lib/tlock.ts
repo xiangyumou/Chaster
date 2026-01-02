@@ -2,7 +2,7 @@ import { timelockEncrypt, timelockDecrypt, roundAt, HttpChainClient, Buffer as T
 import { HttpChain } from 'drand-client';
 
 // Drand mainnet quicknet chain (3s rounds)
-const CHAIN_URL = 'https://api.drand.sh/52db9ba70e0cc0f6eaf7803dd07447a1f5477735fd3f661792ba94600c84e971';
+const CHAIN_URL = process.env.DRAND_CHAIN_URL || 'https://api.drand.sh/52db9ba70e0cc0f6eaf7803dd07447a1f5477735fd3f661792ba94600c84e971';
 
 let chainClient: HttpChainClient | null = null;
 const IS_MOCKED = process.env.MOCK_DRAND === 'true' || process.env.NODE_ENV === 'test';
