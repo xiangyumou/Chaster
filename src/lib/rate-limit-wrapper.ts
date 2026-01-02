@@ -8,8 +8,17 @@ export function withRateLimit(handler: RouteHandler, limit = 100, windowMs = 600
         // Get client IP
         const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ?? '127.0.0.1';
 
-        // Check rate limit
-        const result = await checkRateLimit(ip, limit, windowMs);
+        // Determine effective limit
+        // Priority: Env Var > Argument > Default
+        const envLimit = process.env.RATE_LIMIT_MAX ? parseInt(process.env.RATE_LIMIT_MAX) : null;
+        const effectiveLimit = envLimit !== null && !isNaN(envLimit) ? envLimit : limit;
+
+        // Bypass if limit is 0 or negative
+        if (effectiveLimit <= 0) {
+            return handler(request, context);
+        }
+
+        const result = await checkRateLimit(ip, effectiveLimit, windowMs);
 
         if (!result.allowed) {
             return NextResponse.json(
@@ -22,7 +31,7 @@ export function withRateLimit(handler: RouteHandler, limit = 100, windowMs = 600
                 {
                     status: 429,
                     headers: {
-                        'X-RateLimit-Limit': limit.toString(),
+                        'X-RateLimit-Limit': effectiveLimit.toString(),
                         'X-RateLimit-Remaining': '0',
                         'X-RateLimit-Reset': new Date(result.resetAt).toISOString(),
                     },
@@ -35,7 +44,7 @@ export function withRateLimit(handler: RouteHandler, limit = 100, windowMs = 600
 
         // Add headers to response
         if (response) {
-            response.headers.set('X-RateLimit-Limit', limit.toString());
+            response.headers.set('X-RateLimit-Limit', effectiveLimit.toString());
             response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
             response.headers.set('X-RateLimit-Reset', new Date(result.resetAt).toISOString());
         }
