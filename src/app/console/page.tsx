@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
+import { Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { Lock, Unlock, Database, Clock, Activity, AlertTriangle } from 'lucide-react';
-import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 
 interface Stats {
@@ -24,7 +23,7 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
-    const { theme } = useTheme();
+
 
     useEffect(() => {
         if (!token) return;

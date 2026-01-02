@@ -182,7 +182,8 @@ describe('Admin Logs API (In-Process)', () => {
     });
 
     describe('DELETE /admin/logs', () => {
-        let deleteTestLogId: string;
+        // Log ID stored for potential future use in cleanup
+        let _deleteTestLogId: string;
 
         beforeAll(async () => {
             // Create a log specifically for delete test
@@ -197,7 +198,7 @@ describe('Admin Logs API (In-Process)', () => {
                     duration: 50,
                 },
             });
-            deleteTestLogId = log.id;
+            _deleteTestLogId = log.id;
         });
 
         it('should delete logs by token', async () => {

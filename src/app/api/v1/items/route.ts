@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, errorResponse, successResponse } from '@/lib/auth';
 import { encrypt } from '@/lib/tlock';
@@ -305,8 +305,6 @@ export async function POST(request: NextRequest) {
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
 
-        console.log('Caught Error:', error);
-        console.log('Is ZodError?', error instanceof z.ZodError);
         console.error('Error creating item:', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to create item', 500);
     }

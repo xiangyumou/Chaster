@@ -1,9 +1,8 @@
-import { describe, it, expect, afterAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { NextRequest } from 'next/server';
 import { GET as GET_DB_INFO } from '@/app/api/v1/admin/db/info/route';
 import { POST as POST_BACKUP } from '@/app/api/v1/admin/db/backup/route';
 import { POST as POST_VACUUM } from '@/app/api/v1/admin/db/vacuum/route';
-import fs from 'fs';
 
 const TEST_TOKEN = process.env.API_TOKEN || 'tok_test';
 const BASE_URL = 'http://localhost:3000/api/v1';

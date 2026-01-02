@@ -3,8 +3,8 @@ import { decrypt as tlockDecrypt } from './tlock';
 /**
  * Decrypt timelock-encrypted data (convenience export)
  */
-export async function decrypt(ciphertext: string, roundNumber?: number): Promise<Buffer> {
-    // roundNumber is for compatibility but not used in simple decrypt
+export async function decrypt(ciphertext: string, _roundNumber?: number): Promise<Buffer> {
+    // _roundNumber is for compatibility but not used in simple decrypt
     const result = await tlockDecrypt(ciphertext);
     if (!result) {
         throw new Error('Decryption failed - time may not have been reached yet');

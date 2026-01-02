@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
-import { Trash2, Lock, Unlock, Image as ImageIcon, FileText, Search, Loader2 } from 'lucide-react';
+import { Trash2, Lock, Unlock, Image as ImageIcon, FileText, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useConfirm } from '@/components/confirm-provider';
 import { toast } from 'sonner';
@@ -44,6 +44,7 @@ export default function ItemsPage() {
 
     useEffect(() => {
         if (token) fetchItems();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token, filter]);
 
     const handleDelete = async (id: string) => {
@@ -66,7 +67,7 @@ export default function ItemsPage() {
 
             toast.success('Item deleted successfully');
             fetchItems();
-        } catch (e) {
+        } catch {
             toast.error('Failed to delete item');
         } finally {
             setDeletingId(null);

@@ -24,7 +24,6 @@ export default function ConsoleLayout({
 
     useEffect(() => {
         setMounted(true);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     if (!mounted) return null;
@@ -45,7 +44,7 @@ export default function ConsoleLayout({
             } else {
                 setError('Invalid API Token');
             }
-        } catch (err) {
+        } catch {
             setError('Connection error');
         }
     };
