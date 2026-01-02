@@ -1,0 +1,1181 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Chaster Service API",
+    "version": "1.0.0",
+    "description": "Foundational time-lock encryption service API",
+    "contact": {
+      "name": "Chaster Support"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api/v1",
+      "description": "API Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "Item": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "image"
+            ]
+          },
+          "originalName": {
+            "type": "string",
+            "nullable": true
+          },
+          "content": {
+            "type": "string",
+            "description": "Available only when unlocked"
+          },
+          "decryptAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "layerCount": {
+            "type": "integer"
+          },
+          "unlocked": {
+            "type": "boolean"
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true
+          },
+          "timeRemainingMs": {
+            "type": "integer",
+            "description": "Milliseconds until decryption possible"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/admin/config/{key}": {
+      "get": {
+        "summary": "Get config by key",
+        "description": "Retrieve a specific configuration value.",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Config value"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Config not found"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update config",
+        "description": "Update a specific configuration value.",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "value"
+                ],
+                "properties": {
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Config updated"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete config",
+        "description": "Delete a configuration key.",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Config deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Config not found"
+          }
+        }
+      }
+    },
+    "/admin/config": {
+      "get": {
+        "summary": "Get all system config",
+        "description": "Retrieve all system configuration key-value pairs.",
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Configuration object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "config": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create or update config",
+        "description": "Set a system configuration value.",
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Config saved"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/admin/db/backup": {
+      "post": {
+        "summary": "Create database backup",
+        "description": "Trigger a database backup. For PostgreSQL, use pg_dump externally or \nconfigure automated backups via your hosting provider.\nThis endpoint returns guidance on backup options.\n",
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Backup guidance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "options": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/admin/db/info": {
+      "get": {
+        "summary": "Get database info",
+        "description": "Get information about the database including type and record counts.",
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Database information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "itemCount": {
+                      "type": "integer"
+                    },
+                    "tokenCount": {
+                      "type": "integer"
+                    },
+                    "logCount": {
+                      "type": "integer"
+                    },
+                    "configCount": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/admin/db/vacuum": {
+      "post": {
+        "summary": "Vacuum database",
+        "description": "Run PostgreSQL VACUUM ANALYZE to optimize the database.",
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Vacuum completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Vacuum failed"
+          }
+        }
+      }
+    },
+    "/admin/logs": {
+      "get": {
+        "summary": "Query API logs",
+        "description": "Query API call logs with various filters.",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by token"
+          },
+          {
+            "in": "query",
+            "name": "endpoint",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by endpoint (partial match)"
+          },
+          {
+            "in": "query",
+            "name": "method",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "statusCode",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startTime",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Logs after this timestamp"
+          },
+          {
+            "in": "query",
+            "name": "endTime",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Logs before this timestamp"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of logs"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete API logs",
+        "description": "Delete API logs matching criteria.",
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "beforeTimestamp": {
+                    "type": "integer",
+                    "description": "Delete logs before this timestamp"
+                  },
+                  "token": {
+                    "type": "string",
+                    "description": "Delete logs for this token"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deletion result"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/export/items": {
+      "get": {
+        "summary": "Export all items",
+        "description": "Export all items in various formats. Supports filtering and optional content decryption.",
+        "tags": [
+          "Export"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "csv",
+                "ndjson"
+              ],
+              "default": "json"
+            },
+            "description": "Export format"
+          },
+          {
+            "in": "query",
+            "name": "includeContent",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Include decrypted content for unlocked items"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "locked",
+                "unlocked"
+              ],
+              "default": "all"
+            },
+            "description": "Filter by lock status"
+          },
+          {
+            "in": "query",
+            "name": "includeEncryptedData",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            },
+            "description": "Include encrypted data (for backup purposes)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exported data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/import/items": {
+      "post": {
+        "summary": "Import items",
+        "description": "Import items from a backup. Supports conflict resolution strategies.",
+        "tags": [
+          "Import"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "items"
+                ],
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "encryptedData",
+                        "decryptAt",
+                        "roundNumber"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "Original item ID (optional, will generate new if not provided)"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "text",
+                            "image"
+                          ]
+                        },
+                        "encryptedData": {
+                          "type": "string"
+                        },
+                        "decryptAt": {
+                          "type": "integer"
+                        },
+                        "roundNumber": {
+                          "type": "integer"
+                        },
+                        "createdAt": {
+                          "type": "integer"
+                        },
+                        "layerCount": {
+                          "type": "integer"
+                        },
+                        "metadata": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  },
+                  "conflictStrategy": {
+                    "type": "string",
+                    "enum": [
+                      "skip",
+                      "overwrite",
+                      "error"
+                    ],
+                    "default": "skip",
+                    "description": "How to handle ID conflicts"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Import result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "imported": {
+                      "type": "integer"
+                    },
+                    "skipped": {
+                      "type": "integer"
+                    },
+                    "overwritten": {
+                      "type": "integer"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or conflict"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/items/{id}/extend": {
+      "post": {
+        "summary": "Extend item lock",
+        "description": "Extend the lock duration of an item. Resulting in re-encryption.",
+        "tags": [
+          "Items"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Item ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "minutes"
+                ],
+                "properties": {
+                  "minutes": {
+                    "type": "integer",
+                    "description": "Minutes to add to original unlock time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Extended successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Item not found"
+          },
+          "409": {
+            "description": "Conflict (concurrent modification)"
+          }
+        }
+      }
+    },
+    "/items/{id}/metadata": {
+      "patch": {
+        "summary": "Update item metadata",
+        "description": "Update the metadata field of an item. Supports merge or replace modes.",
+        "tags": [
+          "Items"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Item ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "metadata"
+                ],
+                "properties": {
+                  "metadata": {
+                    "type": "object",
+                    "description": "New metadata object"
+                  },
+                  "merge": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, merge with existing metadata. If false, replace entirely."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated item"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Item not found"
+          }
+        }
+      }
+    },
+    "/items/{id}": {
+      "get": {
+        "summary": "Get item",
+        "description": "Get item details. If the lock time has passed, includes the decrypted content.",
+        "tags": [
+          "Items"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Item ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Item"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Item not found"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete item",
+        "description": "Permanently delete an item.",
+        "tags": [
+          "Items"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Item ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Item not found"
+          }
+        }
+      }
+    },
+    "/items/batch/delete": {
+      "post": {
+        "summary": "Batch delete items",
+        "description": "Delete multiple items by IDs or filter criteria.",
+        "tags": [
+          "Items"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "ids"
+                    ],
+                    "properties": {
+                      "ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "List of item IDs to delete"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "filter"
+                    ],
+                    "properties": {
+                      "filter": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "locked",
+                              "unlocked"
+                            ]
+                          },
+                          "beforeDate": {
+                            "type": "integer",
+                            "description": "Delete items created before this timestamp (ms)"
+                          },
+                          "afterDate": {
+                            "type": "integer",
+                            "description": "Delete items created after this timestamp (ms)"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "text",
+                              "image"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deletion result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deletedCount": {
+                      "type": "integer"
+                    },
+                    "deletedIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/items/batch/get": {
+      "post": {
+        "summary": "Batch get items",
+        "description": "Retrieve multiple items by IDs in a single request. Automatically decrypts unlocked items.",
+        "tags": [
+          "Items"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ids"
+                ],
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "List of item IDs to retrieve (max 100)"
+                  },
+                  "includeContent": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether to include decrypted content for unlocked items"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Item"
+                      }
+                    },
+                    "found": {
+                      "type": "integer"
+                    },
+                    "notFound": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/items/batch": {
+      "post": {
+        "summary": "Batch create items",
+        "tags": [
+          "Items"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ItemInput"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Items created"
+          }
+        }
+      }
+    },
+    "/items": {
+      "get": {
+        "summary": "List items",
+        "description": "Retrieve a paginated list of encrypted items.",
+        "tags": [
+          "Items"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "locked",
+                "unlocked"
+              ],
+              "default": "all"
+            },
+            "description": "Filter by lock status"
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "text",
+                "image"
+              ]
+            },
+            "description": "Filter by content type"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            },
+            "description": "Max items to return"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Pagination offset"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Item"
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "limit": {
+                      "type": "integer"
+                    },
+                    "offset": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/stats": {
+      "get": {
+        "summary": "System statistics",
+        "description": "Retrieve system-wide statistics (admin only in future, currently protected by token).",
+        "tags": [
+          "System"
+        ],
+        "responses": {
+          "200": {
+            "description": "Statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalItems": {
+                      "type": "integer"
+                    },
+                    "lockedItems": {
+                      "type": "integer"
+                    },
+                    "unlockedItems": {
+                      "type": "integer"
+                    },
+                    "byType": {
+                      "type": "object",
+                      "properties": {
+                        "text": {
+                          "type": "integer"
+                        },
+                        "image": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "avgLockDurationMinutes": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    }
+  },
+  "tags": []
+}

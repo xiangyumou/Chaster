@@ -1,0 +1,24 @@
+{
+    "name": "@xymou/chaster-client",
+    "version": "0.0.1",
+    "description": "Official TypeScript Client for @xymou/chaster",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc"
+    },
+    "keywords": [
+        "chaster",
+        "xymou",
+        "sdk",
+        "api"
+    ],
+    "author": "xymou",
+    "license": "MIT",
+    "devDependencies": {
+        "typescript": "^5.0.0"
+    }
+}

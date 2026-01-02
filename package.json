@@ -1,5 +1,5 @@
 {
-  "name": "chaster",
+  "name": "@xymou/chaster",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -19,7 +19,9 @@
     "stress:basic": "tsx scripts/stress-test-comprehensive.ts --scenario basic --mixed",
     "stress:high": "tsx scripts/stress-test-comprehensive.ts --scenario high --mixed",
     "stress:extreme": "tsx scripts/stress-test-comprehensive.ts --scenario extreme --mixed",
-    "stress:all": "tsx scripts/stress-test-runner.ts"
+    "stress:all": "tsx scripts/stress-test-runner.ts",
+    "sdk:generate": "tsx scripts/generate-client.ts",
+    "sdk:build": "cd sdk && npm install && npm run build"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -55,6 +57,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.10",
     "node-fetch": "^3.3.2",
+    "openapi-typescript-codegen": "^0.30.0",
     "p-limit": "^7.2.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
