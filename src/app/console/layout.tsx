@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/lib/store';
-import { Lock, LayoutDashboard, Key, Database, Settings, LogOut } from 'lucide-react';
+import { Lock, LayoutDashboard, Database, Settings, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ModeToggle } from '@/components/mode-toggle';
@@ -107,7 +107,6 @@ export default function ConsoleLayout({
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', href: '/console' },
         { icon: Database, label: 'Items', href: '/console/items' },
-        { icon: Key, label: 'Tokens', href: '/console/tokens' },
         { icon: Settings, label: 'Settings', href: '/console/settings' },
     ];
 

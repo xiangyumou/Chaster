@@ -1,47 +1,26 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { authenticate } from '@/lib/auth';
-import { getPrismaClient } from '@/lib/prisma';
 
 /**
- * Auth Tests - Using Real Database
+ * Auth Tests - Using Environment Variable Token
  * 
- * These tests use real database connections to verify authentication logic.
- * This ensures that the actual Prisma queries and token validation work correctly.
+ * These tests verify authentication logic using the API_TOKEN environment variable.
  */
 describe('Lib: Auth', () => {
-    const TEST_TOKEN_VALUE = `auth_test_token_${Date.now()}`;
-    const INACTIVE_TOKEN_VALUE = `auth_test_inactive_${Date.now()}`;
+    const ORIGINAL_ENV = process.env.API_TOKEN;
+    const TEST_TOKEN = 'test_token_12345';
 
-    beforeAll(async () => {
-        const prisma = getPrismaClient();
-        // Create test tokens in the database
-        await prisma.apiToken.create({
-            data: {
-                token: TEST_TOKEN_VALUE,
-                name: 'Auth Test Token',
-                isActive: true,
-                createdAt: BigInt(Date.now()),
-            },
-        });
-        await prisma.apiToken.create({
-            data: {
-                token: INACTIVE_TOKEN_VALUE,
-                name: 'Auth Test Inactive Token',
-                isActive: false,
-                createdAt: BigInt(Date.now()),
-            },
-        });
+    beforeAll(() => {
+        process.env.API_TOKEN = TEST_TOKEN;
     });
 
-    afterAll(async () => {
-        // Clean up test tokens
-        const prisma = getPrismaClient();
-        await prisma.apiToken.deleteMany({
-            where: {
-                token: { in: [TEST_TOKEN_VALUE, INACTIVE_TOKEN_VALUE] },
-            },
-        });
+    afterAll(() => {
+        if (ORIGINAL_ENV !== undefined) {
+            process.env.API_TOKEN = ORIGINAL_ENV;
+        } else {
+            delete process.env.API_TOKEN;
+        }
     });
 
     describe('Header Validation', () => {
@@ -71,20 +50,20 @@ describe('Lib: Auth', () => {
         });
     });
 
-    describe('Token Validation (Real DB)', () => {
-        it('should succeed with valid active token', async () => {
+    describe('Token Validation', () => {
+        it('should succeed with valid token', async () => {
             const req = new NextRequest('http://localhost/api', {
-                headers: { 'Authorization': `Bearer ${TEST_TOKEN_VALUE}` },
+                headers: { 'Authorization': `Bearer ${TEST_TOKEN}` },
             });
 
             const result = await authenticate(req);
             expect(result).toHaveProperty('data');
-            expect((result as any).data).toBeDefined();
+            expect((result as any).data.token).toBe(TEST_TOKEN);
         });
 
-        it('should fail with non-existent token', async () => {
+        it('should fail with invalid token', async () => {
             const req = new NextRequest('http://localhost/api', {
-                headers: { 'Authorization': 'Bearer non_existent_token_12345' },
+                headers: { 'Authorization': 'Bearer wrong_token_12345' },
             });
 
             const result = await authenticate(req);
@@ -92,9 +71,9 @@ describe('Lib: Auth', () => {
             expect((result as any).error.status).toBe(401);
         });
 
-        it('should fail with inactive token', async () => {
+        it('should fail with token of different length', async () => {
             const req = new NextRequest('http://localhost/api', {
-                headers: { 'Authorization': `Bearer ${INACTIVE_TOKEN_VALUE}` },
+                headers: { 'Authorization': 'Bearer short' },
             });
 
             const result = await authenticate(req);
@@ -103,36 +82,21 @@ describe('Lib: Auth', () => {
         });
     });
 
-    describe('lastUsedAt Update', () => {
-        it('should update lastUsedAt on successful authentication', async () => {
-            const prisma = getPrismaClient();
+    describe('Server Configuration', () => {
+        it('should return 500 when API_TOKEN is not configured', async () => {
+            const originalToken = process.env.API_TOKEN;
+            delete process.env.API_TOKEN;
 
-            // Get the token before authentication
-            const tokenBefore = await prisma.apiToken.findUnique({
-                where: { token: TEST_TOKEN_VALUE },
-            });
-            const lastUsedBefore = tokenBefore?.lastUsedAt;
-
-            // Wait a small amount to ensure timestamp difference
-            await new Promise(resolve => setTimeout(resolve, 10));
-
-            // Authenticate
             const req = new NextRequest('http://localhost/api', {
-                headers: { 'Authorization': `Bearer ${TEST_TOKEN_VALUE}` },
+                headers: { 'Authorization': 'Bearer any_token' },
             });
+
             const result = await authenticate(req);
-            expect(result).toHaveProperty('data');
+            expect(result).toHaveProperty('error');
+            expect((result as any).error.status).toBe(500);
 
-            // Check that lastUsedAt was updated
-            const tokenAfter = await prisma.apiToken.findUnique({
-                where: { token: TEST_TOKEN_VALUE },
-            });
-
-            // lastUsedAt should either be set or updated
-            if (lastUsedBefore !== null) {
-                expect(Number(tokenAfter?.lastUsedAt)).toBeGreaterThanOrEqual(Number(lastUsedBefore));
-            }
-            expect(tokenAfter?.lastUsedAt).toBeDefined();
+            // Restore
+            process.env.API_TOKEN = originalToken;
         });
     });
 });

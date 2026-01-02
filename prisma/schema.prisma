@@ -28,18 +28,6 @@ model Item {
   @@map("items")
 }
 
-// API Token 表
-model ApiToken {
-  token       String   @id
-  name        String
-  createdAt   BigInt   @map("created_at")
-  lastUsedAt  BigInt?  @map("last_used_at")
-  isActive    Boolean  @default(true) @map("is_active")
-  
-  @@index([isActive], name: "idx_api_tokens_active")
-  @@map("api_tokens")
-}
-
 // 系统配置表
 model SystemConfig {
   key   String @id

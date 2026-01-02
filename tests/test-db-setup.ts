@@ -12,8 +12,16 @@ export async function setup() {
     console.log('🔧 Setting up test database...');
 
     // Set test environment
-    (process.env as any).NODE_ENV = 'test';
-    (process.env as any).DATABASE_URL = DATABASE_URL;
+    (process.env as Record<string, string>).NODE_ENV = 'test';
+    (process.env as Record<string, string>).DATABASE_URL = DATABASE_URL;
+
+    // Ensure API_TOKEN is set for tests
+    if (!process.env.API_TOKEN) {
+        (process.env as Record<string, string>).API_TOKEN = 'tok_test';
+        console.log('✅ Set default API_TOKEN for tests: tok_test');
+    } else {
+        console.log(`✅ Using existing API_TOKEN from environment`);
+    }
 
     // Create test database (drop if exists)
     try {
@@ -25,7 +33,7 @@ export async function setup() {
         } else {
             try {
                 execSync(`docker exec chaster-db createdb -U ${DB_USER} ${TEST_DB_NAME}`, { stdio: 'ignore' });
-            } catch (e) {
+            } catch {
                 // Ignore existence error
             }
         }
@@ -34,7 +42,6 @@ export async function setup() {
 
         // Push schema to the test database
         console.log('Running prisma db push...');
-        // We use npx prisma db push, which connects via localhost:5432 (mapped)
         try {
             execSync('npx prisma db push --skip-generate', {
                 stdio: 'pipe',
@@ -43,17 +50,16 @@ export async function setup() {
                     DATABASE_URL: DATABASE_URL
                 }
             });
-        } catch (e: any) {
-            console.warn("Prisma db push warning (might be non-fatal):", e.message);
+        } catch (e) {
+            const error = e as Error;
+            console.warn("Prisma db push warning (might be non-fatal):", error.message);
         }
 
         console.log('✅ Schema synchronized');
 
-        // Create a test token for integration tests
-        await createTestToken();
-
-    } catch (error: any) {
-        console.error('❌ Failed to setup test database:', error.message);
+    } catch (error) {
+        const err = error as Error;
+        console.error('❌ Failed to setup test database:', err.message);
         throw error;
     }
 }
@@ -63,63 +69,4 @@ export async function teardown() {
     // Do NOT drop the main database.
     // Just optional cleanup of data if needed, but for now we leave it.
     console.log('✅ Test database cleanup skipped (using shared DB)');
-}
-
-async function createTestToken() {
-    // Import dynamically to avoid loading before env is set
-    // Need to ensure the import picks up the NEW process.env.DATABASE_URL
-    // PrismaClient usually reads env var on instantiation.
-    // Ideally we should re-instantiate or ensure the module isn't already cached with old env?
-    // In vitest using include/setupFiles, this setup runs in globalSetup.
-    // The actual tests run in different threads/processes usually (depending on pool).
-    // GLOBAL SETUP runs in a separate process in Vitest? 
-    // "globalSetup" runs before tests.
-    // BUT "setupFiles" run in test context.
-    // This file is 'tests/test-db-setup.ts' which vitest config says is "globalSetup".
-
-    // We need to pass the DATABASE_URL to the test environment?
-    // Vitest globalSetup can return a function to teardown, and can expose env vars?
-    // Usually modifying process.env in globalSetup does NOT propagate to test files in threads.
-    // Vitest docs say: "Global setup runs in a separate process... if you want to share state... use provide/inject or env vars via specific methods?"
-    // Actually, simple process.env modification in globalSetup MIGHT NOT work for workers.
-    // However, let's look at how the original script did it. It set process.env.
-    // If the original author intended this work, maybe they rely on single-thread or something?
-    // Or maybe they expected it to work.
-
-    // To be safe, I will rely on the fact that I'm setting the actual DATABASE_URL env var for the 'prisma db push' command.
-    // For the tests themselves, they need to see this URL.
-    // I might need to put this URL in .env.test or similar?
-    // Or, Vitest allows a "teardown" function returned from setup.
-    // And it allows returning unique env.
-
-    // Let's assume for now I will set it here.
-    // But to properly inject into Vitest workers, it's tricky if they are isolated.
-    // BUT, since 'dotenv' is used in 'vitest.config.ts' (via setupFiles?), maybe `.env` is loaded.
-    // I can write a `.env.test.local` file? Or just `.env.test`?
-    // Vitest loads `.env.test` automatically if using `dotenv` flow.
-    // Let's TRY creating a `.env.test` file from here as well to ensure workers verify it.
-
-    // Wait, the `createTestToken` function here imports `src/lib/prisma.js`.
-    // If `globalSetup` runs in its own process, `src/lib/prisma.js` initializes with THAT process's env.
-    // So the token creation will work fine HERE.
-    // The question is if the TESTS will see the correct DATABASE_URL.
-    // Import dynamically
-    const { getPrismaClient } = await import('@/lib/prisma');
-    const db = getPrismaClient();
-
-    const unitTestToken = process.env.TEST_TOKEN || 'tok_test_integration_fixed';
-
-    // Upsert to ensure it exists and matches
-    await db.apiToken.upsert({
-        where: { token: unitTestToken },
-        update: { isActive: true },
-        create: {
-            token: unitTestToken,
-            name: 'Vitest Integration Test Token',
-            createdAt: BigInt(Date.now()),
-            isActive: true
-        }
-    });
-
-    console.log(`✅ Upserted TEST_TOKEN: ${unitTestToken}`);
 }

@@ -22,7 +22,7 @@ import { decrypt, canDecrypt } from '@/lib/tlock';
 // But for Integration tests, using real DB and Tokens is better.
 // We will use the same TEST_TOKEN env var.
 
-const TEST_TOKEN = process.env.UNIT_TEST_TOKEN || process.env.TEST_TOKEN || 'tok_test';
+const TEST_TOKEN = process.env.API_TOKEN || 'tok_test';
 const BASE_URL = 'http://localhost:3000/api/v1';
 
 // We need to ensure the DB has this token. 

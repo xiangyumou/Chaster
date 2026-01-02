@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 import { GET, DELETE } from '@/app/api/v1/admin/logs/route';
 import { getPrismaClient } from '@/lib/prisma';
 
-const TEST_TOKEN = process.env.UNIT_TEST_TOKEN || process.env.TEST_TOKEN || 'tok_test';
+const TEST_TOKEN = process.env.API_TOKEN || 'tok_test';
 const BASE_URL = 'http://localhost:3000/api/v1';
 
 function createRequest(method: string, path: string, body?: unknown) {

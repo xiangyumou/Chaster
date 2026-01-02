@@ -1,6 +1,6 @@
 // API Authentication Middleware
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrismaClient } from './prisma';
+import crypto from 'crypto';
 
 export interface AuthContext {
     token: string;
@@ -46,70 +46,49 @@ export async function authenticate(
         };
     }
 
-    // Validate token against database
-    const prisma = getPrismaClient();
+    // Validate token against environment variable
+    const expectedToken = process.env.API_TOKEN;
 
-    try {
-        const apiToken = await prisma.apiToken.findUnique({
-            where: { token },
-        });
-
-        if (!apiToken) {
-            return {
-                error: NextResponse.json(
-                    {
-                        error: {
-                            code: 'INVALID_TOKEN',
-                            message: 'Invalid API token',
-                        },
-                    },
-                    { status: 401 }
-                ),
-            };
-        }
-
-        if (!apiToken.isActive) {
-            return {
-                error: NextResponse.json(
-                    {
-                        error: {
-                            code: 'TOKEN_DISABLED',
-                            message: 'This API token has been disabled',
-                        },
-                    },
-                    { status: 401 }
-                ),
-            };
-        }
-
-        // Update last used timestamp (async, don't wait)
-        prisma.apiToken
-            .update({
-                where: { token },
-                data: { lastUsedAt: BigInt(Date.now()) },
-            })
-            .catch((err) => console.error('Failed to update token lastUsedAt:', err));
-
-        return {
-            data: {
-                token: apiToken.token,
-                tokenName: apiToken.name,
-            },
-        };
-    } catch (error) {
-        console.error('Authentication error:', error);
+    if (!expectedToken) {
+        console.error('API_TOKEN environment variable is not set');
         return {
             error: NextResponse.json(
                 {
                     error: {
-                        code: 'INTERNAL_ERROR',
-                        message: 'Authentication failed',
+                        code: 'SERVER_MISCONFIGURED',
+                        message: 'Server authentication is not configured',
                     },
                 },
                 { status: 500 }
             ),
         };
     }
+
+    // Use timing-safe comparison to prevent timing attacks
+    const tokenBuffer = Buffer.from(token);
+    const expectedBuffer = Buffer.from(expectedToken);
+
+    if (tokenBuffer.length !== expectedBuffer.length ||
+        !crypto.timingSafeEqual(tokenBuffer, expectedBuffer)) {
+        return {
+            error: NextResponse.json(
+                {
+                    error: {
+                        code: 'INVALID_TOKEN',
+                        message: 'Invalid API token',
+                    },
+                },
+                { status: 401 }
+            ),
+        };
+    }
+
+    return {
+        data: {
+            token: token,
+            tokenName: 'API Token',
+        },
+    };
 }
 
 /**

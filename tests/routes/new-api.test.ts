@@ -23,7 +23,7 @@ vi.mock('@/lib/decryption', async () => {
     };
 });
 
-const TEST_TOKEN = process.env.UNIT_TEST_TOKEN || process.env.TEST_TOKEN || 'tok_test';
+const TEST_TOKEN = process.env.API_TOKEN || 'tok_test';
 const BASE_URL = 'http://localhost:3000/api/v1';
 
 describe('New API Endpoints (P0-P2)', () => {

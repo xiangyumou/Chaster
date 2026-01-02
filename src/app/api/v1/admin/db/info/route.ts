@@ -38,9 +38,8 @@ export async function GET(request: NextRequest) {
         const prisma = getPrismaClient();
 
         // Get record counts
-        const [itemCount, tokenCount, logCount, configCount] = await Promise.all([
+        const [itemCount, logCount, configCount] = await Promise.all([
             prisma.item.count(),
-            prisma.apiToken.count(),
             prisma.apiLog.count(),
             prisma.systemConfig.count(),
         ]);
@@ -60,7 +59,6 @@ export async function GET(request: NextRequest) {
             type: 'postgresql',
             databaseSize,
             itemCount,
-            tokenCount,
             logCount,
             configCount,
         });

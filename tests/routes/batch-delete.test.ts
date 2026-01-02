@@ -13,7 +13,7 @@ vi.mock('@/lib/tlock', async (importOriginal) => {
     };
 });
 
-const TEST_TOKEN = process.env.UNIT_TEST_TOKEN || process.env.TEST_TOKEN || 'tok_test';
+const TEST_TOKEN = process.env.API_TOKEN || 'tok_test';
 const BASE_URL = 'http://localhost:3000/api/v1';
 
 function createRequest(method: string, path: string, body?: unknown) {

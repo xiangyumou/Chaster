@@ -5,7 +5,7 @@ import { POST as POST_BACKUP } from '@/app/api/v1/admin/db/backup/route';
 import { POST as POST_VACUUM } from '@/app/api/v1/admin/db/vacuum/route';
 import fs from 'fs';
 
-const TEST_TOKEN = process.env.UNIT_TEST_TOKEN || process.env.TEST_TOKEN || 'tok_test';
+const TEST_TOKEN = process.env.API_TOKEN || 'tok_test';
 const BASE_URL = 'http://localhost:3000/api/v1';
 
 function createRequest(method: string, apiPath: string, body?: unknown) {
