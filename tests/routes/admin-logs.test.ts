@@ -182,13 +182,10 @@ describe('Admin Logs API (In-Process)', () => {
     });
 
     describe('DELETE /admin/logs', () => {
-        // Log ID stored for potential future use in cleanup
-        let _deleteTestLogId: string;
-
         beforeAll(async () => {
             // Create a log specifically for delete test
             const prisma = getPrismaClient();
-            const log = await prisma.apiLog.create({
+            await prisma.apiLog.create({
                 data: {
                     token: 'delete_test_token',
                     endpoint: '/delete/test',
@@ -198,7 +195,7 @@ describe('Admin Logs API (In-Process)', () => {
                     duration: 50,
                 },
             });
-            _deleteTestLogId = log.id;
+            // Log created - we delete by token so ID not needed
         });
 
         it('should delete logs by token', async () => {

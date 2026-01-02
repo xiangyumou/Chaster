@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Lock, Database, Code, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Lock, Database, Code, ShieldCheck, LucideIcon } from 'lucide-react';
 import { ModeToggle } from '@/components/mode-toggle';
 
 export default function Home() {
@@ -79,7 +79,7 @@ export default function Home() {
   );
 }
 
-function FeatureCard({ icon: Icon, title, desc }: { icon: any, title: string, desc: string }) {
+function FeatureCard({ icon: Icon, title, desc }: { icon: LucideIcon, title: string, desc: string }) {
   return (
     <div className="p-6 border border-border rounded-xl bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow">
       <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-4">

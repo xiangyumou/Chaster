@@ -13,7 +13,7 @@ export class EndpointTester {
     private async makeRequest(
         endpoint: string,
         method: string,
-        body?: any
+        body?: unknown
     ): Promise<RequestResult> {
         const start = performance.now();
         const url = `${this.config.baseUrl}${endpoint}`;
@@ -38,13 +38,13 @@ export class EndpointTester {
                 endpoint,
                 timestamp: Date.now()
             };
-        } catch (e: any) {
+        } catch (e: unknown) {
             return {
                 success: false,
                 status: 0,
                 duration: performance.now() - start,
                 endpoint,
-                error: e.message,
+                error: e instanceof Error ? e.message : String(e),
                 timestamp: Date.now()
             };
         }
@@ -129,13 +129,13 @@ export class EndpointTester {
                 endpoint: '/health',
                 timestamp: Date.now()
             };
-        } catch (e: any) {
+        } catch (e: unknown) {
             return {
                 success: false,
                 status: 0,
                 duration: performance.now() - start,
                 endpoint: '/health',
-                error: e.message,
+                error: e instanceof Error ? e.message : String(e),
                 timestamp: Date.now()
             };
         }

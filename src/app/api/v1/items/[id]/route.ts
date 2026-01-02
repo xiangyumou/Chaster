@@ -54,7 +54,20 @@ export async function GET(
         const metadata = item.metadata ? JSON.parse(item.metadata) : null;
 
         // Build base response
-        const response: any = {
+        interface ItemResponse {
+            id: string;
+            type: string;
+            originalName: string | null;
+            decryptAt: number;
+            createdAt: number;
+            layerCount: number;
+            unlocked: boolean;
+            metadata: Record<string, unknown> | null;
+            content?: string | null;
+            timeRemainingMs?: number;
+        }
+
+        const response: ItemResponse = {
             id: item.id,
             type: item.type,
             originalName: item.originalName,
@@ -68,7 +81,7 @@ export async function GET(
         // If unlocked, decrypt and include content
         if (unlocked) {
             try {
-                const decryptedBuffer = await decrypt(item.encryptedData, Number(item.roundNumber));
+                const decryptedBuffer = await decrypt(item.encryptedData);
 
                 if (item.type === 'text') {
                     response.content = decryptedBuffer.toString('utf-8');

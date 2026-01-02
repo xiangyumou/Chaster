@@ -4,7 +4,6 @@ import { useState, useRef, useMemo } from 'react';
 
 interface AddModalProps {
     isOpen: boolean;
-    defaultDuration: number;
     onClose: () => void;
     onSubmit: (data: FormData) => Promise<void>;
 }
@@ -20,7 +19,7 @@ const DURATION_PRESETS = [
 
 type TimeMode = 'duration' | 'absolute';
 
-export default function AddModal({ isOpen, defaultDuration, onClose, onSubmit }: AddModalProps) {
+export default function AddModal({ isOpen, onClose, onSubmit }: AddModalProps) {
     const [type, setType] = useState<'text' | 'image'>('text');
     const [text, setText] = useState('');
     const [file, setFile] = useState<File | null>(null);

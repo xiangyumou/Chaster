@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { authenticate, successResponse, errorResponse } from '@/lib/auth';
+import { authenticate, successResponse } from '@/lib/auth';
 
 /**
  * @swagger

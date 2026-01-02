@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { Lock, LayoutDashboard, Database, Settings, LogOut } from 'lucide-react';
 import Link from 'next/link';
@@ -16,15 +16,12 @@ export default function ConsoleLayout({
 }) {
     const { token, setToken } = useAuthStore();
     const { confirm } = useConfirm();
-    const [mounted, setMounted] = useState(false);
+    // Client components are always mounted when this code runs
+    const [mounted] = useState(true);
     const [inputToken, setInputToken] = useState('');
     const [error, setError] = useState('');
     const pathname = usePathname();
     const router = useRouter();
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
 
     if (!mounted) return null;
 

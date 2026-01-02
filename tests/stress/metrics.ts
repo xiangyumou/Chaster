@@ -7,7 +7,7 @@ export interface RequestResult {
     status: number;
     duration: number;
     endpoint: string;
-    error?: any;
+    error?: unknown;
     timestamp: number;
 }
 

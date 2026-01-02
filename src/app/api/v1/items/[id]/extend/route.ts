@@ -76,7 +76,7 @@ export async function POST(
         if (unlocked) {
             // Decrypt first
             try {
-                contentToEncrypt = await decrypt(item.encryptedData, Number(item.roundNumber));
+                contentToEncrypt = await decrypt(item.encryptedData);
             } catch (error) {
                 console.error('Decryption failed during extend:', error);
                 return errorResponse('DECRYPTION_FAILED', 'Failed to decrypt content for re-encryption', 500);
@@ -115,9 +115,9 @@ export async function POST(
             decryptAt: newDecryptAt.getTime(),
             layerCount: item.layerCount + 1,
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         if (error instanceof z.ZodError) {
-            const message = (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || 'Validation error';
+            const message = error.issues?.[0]?.message || 'Validation error';
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
 

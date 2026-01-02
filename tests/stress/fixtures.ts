@@ -33,7 +33,7 @@ export function generateImageBase64(size: 'small' | 'medium' | 'large' = 'small'
     return colors[size];
 }
 
-export function generateMetadata(index: number): Record<string, any> {
+export function generateMetadata(index: number): Record<string, unknown> {
     return {
         testId: `stress-test-${index}`,
         timestamp: Date.now(),

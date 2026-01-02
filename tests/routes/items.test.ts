@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, Mock } from 'vitest';
 import { NextRequest } from 'next/server';
 import { POST, GET } from '@/app/api/v1/items/route';
 import { POST as EXTEND } from '@/app/api/v1/items/[id]/extend/route';
@@ -17,6 +17,10 @@ vi.mock('@/lib/tlock', async (importOriginal) => {
 
 import { decrypt, canDecrypt } from '@/lib/tlock';
 
+// Cast mocks to Mock type for proper typing
+const mockedDecrypt = decrypt as Mock;
+const mockedCanDecrypt = canDecrypt as Mock;
+
 // Mock Auth: We will assume specific tokens exist or we need to add a way 
 // to mock `authenticate` function if we don't want to use real tokens.
 // But for Integration tests, using real DB and Tokens is better.
@@ -33,18 +37,17 @@ describe('Items API (In-Process Coverage)', () => {
     /**
      * Helper to create a NextRequest
      */
-    function createRequest(method: string, path: string, body?: any, startParams?: string) {
+    function createRequest(method: string, path: string, body?: unknown, startParams?: string) {
         const url = `${BASE_URL}${path}${startParams || ''}`;
-        const init: any = {
-            method,
-            headers: {
-                'Authorization': `Bearer ${TEST_TOKEN}`,
-                'Content-Type': 'application/json'
-            }
+        const headers: Record<string, string> = {
+            'Authorization': `Bearer ${TEST_TOKEN}`,
+            'Content-Type': 'application/json'
         };
-        if (body) {
-            init.body = JSON.stringify(body);
-        }
+        const init = {
+            method,
+            headers,
+            body: body ? JSON.stringify(body) : undefined
+        };
         return new NextRequest(url, init);
     }
 
@@ -75,7 +78,8 @@ describe('Items API (In-Process Coverage)', () => {
         expect(data.items.length).toBeGreaterThan(0);
 
         // Verify created item is in list
-        const found = data.items.find((i: any) => i.id === createdId);
+        interface ListItem { id: string }
+        const found = data.items.find((i: ListItem) => i.id === createdId);
         expect(found).toBeDefined();
     });
 
@@ -129,8 +133,8 @@ describe('Items API (In-Process Coverage)', () => {
         future.setMinutes(future.getMinutes() + 20); // Advance 20 mins (Lock was 10 mins)
         vi.setSystemTime(future);
 
-        (canDecrypt as any).mockReturnValue(true);
-        (decrypt as any).mockResolvedValue(Buffer.from('Coverage Content'));
+        mockedCanDecrypt.mockReturnValue(true);
+        mockedDecrypt.mockResolvedValue(Buffer.from('Coverage Content'));
 
         const req = createRequest('GET', `/items/${createdId}`);
         const res = await GET_ONE(req, { params: Promise.resolve({ id: createdId }) });

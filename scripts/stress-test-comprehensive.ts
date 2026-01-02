@@ -7,8 +7,6 @@
 import { MetricsCollector, formatMetrics } from '../tests/stress/metrics.js';
 import { EndpointTester, TEST_SCENARIOS, ScenarioConfig } from '../tests/stress/scenarios.js';
 
-// p-limit will be loaded dynamically
-declare const pLimit: any;
 
 
 interface TestOptions {
@@ -43,7 +41,7 @@ class StressTestRunner {
 
         this.collector.start();
 
-        const limit = (global as any).pLimit(concurrency);
+        const limit = (global as unknown as { pLimit: (n: number) => <T>(fn: () => Promise<T>) => Promise<T> }).pLimit(concurrency);
         const promises: Promise<void>[] = [];
 
         // Progress tracking
@@ -110,7 +108,7 @@ class StressTestRunner {
 
         this.collector.start();
 
-        const limit = (global as any).pLimit(concurrency);
+        const limit = (global as unknown as { pLimit: (n: number) => <T>(fn: () => Promise<T>) => Promise<T> }).pLimit(concurrency);
         const promises: Promise<void>[] = [];
 
         let completed = 0;
@@ -213,8 +211,9 @@ async function main() {
             }
 
             await db.$disconnect();
-        } catch (error: any) {
-            console.error('❌ Failed to fetch token from database:', error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.error('❌ Failed to fetch token from database:', message);
             console.error('\nYou can also set TEST_TOKEN manually:');
             console.error('  export TEST_TOKEN=your_token');
             console.error('  npm run stress:basic');
@@ -279,11 +278,11 @@ async function main() {
         // Dynamic import for ESM module
         const pLimitModule = await import('p-limit');
         // Export default for use in the module
-        (global as any).pLimit = pLimitModule.default;
+        (global as Record<string, unknown>).pLimit = pLimitModule.default;
 
         await main();
-    } catch (e: any) {
-        if (e.code === 'ERR_MODULE_NOT_FOUND') {
+    } catch (e: unknown) {
+        if (e && typeof e === 'object' && 'code' in e && e.code === 'ERR_MODULE_NOT_FOUND') {
             console.error('❌ Missing dependency: p-limit');
             console.error('Install it with: npm install p-limit');
             process.exit(1);

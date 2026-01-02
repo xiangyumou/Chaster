@@ -2,6 +2,24 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import fetch from 'node-fetch';
 import { TEST_CONFIG } from '../setup.js';
 
+// Response type interfaces
+interface ItemResponse {
+    id: string;
+    type: string;
+    layerCount: number;
+    unlocked: boolean;
+    content: string | null;
+    timeRemainingMs?: number;
+    decryptAt: number;
+}
+
+interface ErrorResponse {
+    error: {
+        code: string;
+        message: string;
+    };
+}
+
 // Helper to create valid auth header
 const authHeader = (token: string) => ({
     'Authorization': `Bearer ${token}`,
@@ -52,7 +70,7 @@ describeIntegration('Chaster Integration Tests', () => {
                     durationMinutes: 1 // 1 min lock
                 })
             });
-            const data = await res.json() as any;
+            const data = await res.json() as ItemResponse;
 
             expect(res.status).toBe(201);
             expect(data.id).toBeDefined();
@@ -92,7 +110,7 @@ describeIntegration('Chaster Integration Tests', () => {
                 })
             });
             expect(res.status).toBe(400);
-            const data = await res.json() as any;
+            const data = await res.json() as ErrorResponse;
             expect(data.error.code).toBe('VALIDATION_ERROR');
         });
 
@@ -138,7 +156,7 @@ describeIntegration('Chaster Integration Tests', () => {
                 headers: authHeader(authToken)
             });
             expect(res.status).toBe(200);
-            const data = await res.json() as any;
+            const data = await res.json() as ItemResponse;
 
             expect(data.id).toBe(createdItemId);
             expect(data.unlocked).toBe(false);
@@ -178,7 +196,7 @@ describeIntegration('Chaster Integration Tests', () => {
             const getRes = await fetch(`${TEST_CONFIG.BASE_URL}/items/${createdItemId}`, {
                 headers: authHeader(authToken)
             });
-            const originalData = await getRes.json() as any;
+            const originalData = await getRes.json() as ItemResponse;
             const originalDecryptAt = originalData.decryptAt;
 
             // Extend by 10 mins
@@ -190,7 +208,7 @@ describeIntegration('Chaster Integration Tests', () => {
             expect(res.status).toBe(200);
 
             // Verify new date is original + 10 minutes
-            const newData = await res.json() as any;
+            const newData = await res.json() as ItemResponse;
             const expectedDecryptAt = originalDecryptAt + (10 * 60 * 1000);
             expect(newData.decryptAt).toBe(expectedDecryptAt);
             expect(newData.layerCount).toBeGreaterThan(1);
@@ -220,7 +238,7 @@ describeIntegration('Chaster Integration Tests', () => {
         it('AU-01: Missing Token', async () => {
             const res = await fetch(`${TEST_CONFIG.BASE_URL}/items`);
             expect(res.status).toBe(401);
-            const data = await res.json() as any;
+            const data = await res.json() as ErrorResponse;
             expect(data.error.code).toBe('MISSING_TOKEN');
         });
 
@@ -232,7 +250,7 @@ describeIntegration('Chaster Integration Tests', () => {
                 headers: { 'Authorization': 'Bearer invalid-token-123' }
             });
             expect(res.status).toBe(401);
-            const data = await res.json() as any;
+            const data = await res.json() as ErrorResponse;
             expect(data.error.code).toBe('INVALID_TOKEN');
         });
     });

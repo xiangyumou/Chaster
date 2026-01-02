@@ -1,6 +1,19 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { NextRequest } from 'next/server';
-import { authenticate } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { authenticate, AuthContext } from '@/lib/auth';
+
+// Type for auth result
+type AuthResult = { data: AuthContext } | { error: NextResponse };
+
+// Type guard for error result
+function hasError(result: AuthResult): result is { error: NextResponse } {
+    return 'error' in result;
+}
+
+// Type guard for success result
+function hasData(result: AuthResult): result is { data: AuthContext } {
+    return 'data' in result;
+}
 
 /**
  * Auth Tests - Using Environment Variable Token
@@ -27,8 +40,10 @@ describe('Lib: Auth', () => {
         it('should fail if no authorization header', async () => {
             const req = new NextRequest('http://localhost/api');
             const result = await authenticate(req);
-            expect(result).toHaveProperty('error');
-            expect((result as any).error.status).toBe(401);
+            expect(hasError(result)).toBe(true);
+            if (hasError(result)) {
+                expect(result.error.status).toBe(401);
+            }
         });
 
         it('should fail if authorization header uses wrong scheme', async () => {
@@ -36,8 +51,10 @@ describe('Lib: Auth', () => {
                 headers: { 'Authorization': 'Basic 123' },
             });
             const result = await authenticate(req);
-            expect(result).toHaveProperty('error');
-            expect((result as any).error.status).toBe(401);
+            expect(hasError(result)).toBe(true);
+            if (hasError(result)) {
+                expect(result.error.status).toBe(401);
+            }
         });
 
         it('should fail if Bearer token is empty', async () => {
@@ -45,8 +62,10 @@ describe('Lib: Auth', () => {
                 headers: { 'Authorization': 'Bearer ' },
             });
             const result = await authenticate(req);
-            expect(result).toHaveProperty('error');
-            expect((result as any).error.status).toBe(401);
+            expect(hasError(result)).toBe(true);
+            if (hasError(result)) {
+                expect(result.error.status).toBe(401);
+            }
         });
     });
 
@@ -57,8 +76,10 @@ describe('Lib: Auth', () => {
             });
 
             const result = await authenticate(req);
-            expect(result).toHaveProperty('data');
-            expect((result as any).data.token).toBe(TEST_TOKEN);
+            expect(hasData(result)).toBe(true);
+            if (hasData(result)) {
+                expect(result.data.token).toBe(TEST_TOKEN);
+            }
         });
 
         it('should fail with invalid token', async () => {
@@ -67,8 +88,10 @@ describe('Lib: Auth', () => {
             });
 
             const result = await authenticate(req);
-            expect(result).toHaveProperty('error');
-            expect((result as any).error.status).toBe(401);
+            expect(hasError(result)).toBe(true);
+            if (hasError(result)) {
+                expect(result.error.status).toBe(401);
+            }
         });
 
         it('should fail with token of different length', async () => {
@@ -77,8 +100,10 @@ describe('Lib: Auth', () => {
             });
 
             const result = await authenticate(req);
-            expect(result).toHaveProperty('error');
-            expect((result as any).error.status).toBe(401);
+            expect(hasError(result)).toBe(true);
+            if (hasError(result)) {
+                expect(result.error.status).toBe(401);
+            }
         });
     });
 
@@ -92,8 +117,10 @@ describe('Lib: Auth', () => {
             });
 
             const result = await authenticate(req);
-            expect(result).toHaveProperty('error');
-            expect((result as any).error.status).toBe(500);
+            expect(hasError(result)).toBe(true);
+            if (hasError(result)) {
+                expect(result.error.status).toBe(500);
+            }
 
             // Restore
             process.env.API_TOKEN = originalToken;

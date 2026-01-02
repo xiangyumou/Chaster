@@ -4,8 +4,6 @@
  */
 
 import { execSync } from 'child_process';
-import { ReportGenerator, TestReport } from '../tests/stress/reporters.js';
-import type { MetricsSummary } from '../tests/stress/metrics.js';
 
 interface ScenarioRun {
     name: string;
@@ -57,10 +55,12 @@ async function runScenario(scenario: ScenarioRun): Promise<{ success: boolean; o
         console.log(output);
         return { success: true, output };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(`❌ Scenario failed: ${scenario.name}`);
-        console.error(error.stdout || error.message);
-        return { success: false, output: error.stdout || error.message };
+        const errOutput = error && typeof error === 'object' && 'stdout' in error ? (error as { stdout: string }).stdout :
+            error instanceof Error ? error.message : String(error);
+        console.error(errOutput);
+        return { success: false, output: errOutput };
     }
 }
 

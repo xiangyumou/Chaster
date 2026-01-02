@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { authenticate, errorResponse, successResponse } from '@/lib/auth';
 import { encrypt } from '@/lib/tlock';
 import { v4 as uuidv4 } from 'uuid';
@@ -122,7 +123,7 @@ export async function GET(request: NextRequest) {
         const now = Date.now();
 
         // Build where clause
-        const where: any = {};
+        const where: Prisma.ItemWhereInput = {};
         if (query.type) {
             where.type = query.type;
         }
@@ -148,7 +149,7 @@ export async function GET(request: NextRequest) {
 
         // Filter by status
         if (query.status !== 'all') {
-            filteredItems = filteredItems.filter((item: any) => {
+            filteredItems = filteredItems.filter((item) => {
                 const unlocked = Number(item.decryptAt) <= now;
                 return query.status === 'unlocked' ? unlocked : !unlocked;
             });
@@ -157,33 +158,33 @@ export async function GET(request: NextRequest) {
         // Filter by created time range
         if (query.createdAfter) {
             filteredItems = filteredItems.filter(
-                (item: any) => Number(item.createdAt) >= query.createdAfter!
+                (item) => Number(item.createdAt) >= query.createdAfter!
             );
         }
         if (query.createdBefore) {
             filteredItems = filteredItems.filter(
-                (item: any) => Number(item.createdAt) <= query.createdBefore!
+                (item) => Number(item.createdAt) <= query.createdBefore!
             );
         }
 
         // Filter by decrypt time range
         if (query.decryptAfter) {
             filteredItems = filteredItems.filter(
-                (item: any) => Number(item.decryptAt) >= query.decryptAfter!
+                (item) => Number(item.decryptAt) >= query.decryptAfter!
             );
         }
         if (query.decryptBefore) {
             filteredItems = filteredItems.filter(
-                (item: any) => Number(item.decryptAt) <= query.decryptBefore!
+                (item) => Number(item.decryptAt) <= query.decryptBefore!
             );
         }
 
         // Filter by metadata key existence
         if (query.metadataKey) {
-            filteredItems = filteredItems.filter((item: any) => {
+            filteredItems = filteredItems.filter((item) => {
                 if (!item.metadata) return false;
                 try {
-                    const meta = JSON.parse(item.metadata);
+                    const meta = JSON.parse(item.metadata) as Record<string, unknown>;
                     return query.metadataKey! in meta;
                 } catch {
                     return false;
@@ -196,7 +197,7 @@ export async function GET(request: NextRequest) {
         const paginatedItems = filteredItems.slice(query.offset, query.offset + query.limit);
 
         // Format response
-        const items = paginatedItems.map((item: any) => {
+        const items = paginatedItems.map((item) => {
             const unlocked = Number(item.decryptAt) <= now;
             const metadata = item.metadata ? JSON.parse(item.metadata) : null;
 
@@ -219,9 +220,9 @@ export async function GET(request: NextRequest) {
             limit: query.limit,
             offset: query.offset,
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         if (error instanceof z.ZodError) {
-            const message = (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || 'Validation error';
+            const message = error.issues?.[0]?.message || 'Validation error';
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
 
@@ -299,9 +300,9 @@ export async function POST(request: NextRequest) {
             },
             201
         );
-    } catch (error: any) {
+    } catch (error: unknown) {
         if (error instanceof z.ZodError) {
-            const message = (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || 'Validation error';
+            const message = error.issues?.[0]?.message || 'Validation error';
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
 

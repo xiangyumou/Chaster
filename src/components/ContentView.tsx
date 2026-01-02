@@ -243,6 +243,7 @@ export default function ContentView({ selectedId, onDelete, onItemUpdated, onMen
                         {item.type === 'text' ? (
                             <div className="text-content">{item.content}</div>
                         ) : (
+                            /* eslint-disable-next-line @next/next/no-img-element */
                             <img
                                 src={item.content || ''}
                                 alt={item.original_name || 'Decrypted image'}

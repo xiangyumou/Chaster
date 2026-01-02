@@ -21,7 +21,7 @@ export class ReportGenerator {
         this.reportsDir = reportsDir;
         try {
             mkdirSync(reportsDir, { recursive: true });
-        } catch (e) {
+        } catch {
             // Directory already exists
         }
     }

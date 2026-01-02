@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, Mock } from 'vitest';
 
 /**
  * Decryption Unit Tests - Using Mocks for Layer Logic Validation
@@ -20,22 +20,25 @@ vi.mock('@/lib/tlock', () => ({
 import { decrypt, decryptLayers } from '@/lib/decryption';
 import { decrypt as tlockDecrypt } from '@/lib/tlock';
 
+// Type the mock for proper usage
+const mockedTlockDecrypt = tlockDecrypt as Mock;
+
 describe('Lib: Decryption', () => {
     it('should decrypt single layer', async () => {
-        (tlockDecrypt as any).mockResolvedValue(Buffer.from('plaintext'));
+        mockedTlockDecrypt.mockResolvedValue(Buffer.from('plaintext'));
         const res = await decrypt('ciphertext');
         expect(res.toString()).toBe('plaintext');
     });
 
     it('should throw if tlock returns null', async () => {
-        (tlockDecrypt as any).mockResolvedValue(null);
+        mockedTlockDecrypt.mockResolvedValue(null);
         await expect(decrypt('ciphertext')).rejects.toThrow('time may not have been reached');
     });
 
     it('should decrypt multiple layers', async () => {
         // First layer returns inner ciphertext (string)
         // Second layer returns final plaintext
-        (tlockDecrypt as any)
+        mockedTlockDecrypt
             .mockResolvedValueOnce(Buffer.from('layer2_cipher'))
             .mockResolvedValueOnce(Buffer.from('final_plain'));
 
@@ -44,7 +47,7 @@ describe('Lib: Decryption', () => {
     });
 
     it('should throw on partial layer failure', async () => {
-        (tlockDecrypt as any)
+        mockedTlockDecrypt
             .mockResolvedValueOnce(Buffer.from('inner'))
             .mockResolvedValueOnce(null);
 

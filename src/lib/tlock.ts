@@ -8,7 +8,7 @@ let chainClient: HttpChainClient | null = null;
 const IS_MOCKED = process.env.MOCK_DRAND === 'true' || process.env.NODE_ENV === 'test';
 
 async function getChainClient(): Promise<HttpChainClient> {
-    if (IS_MOCKED) return {} as any; // Dummy client for mocked mode
+    if (IS_MOCKED) return {} as HttpChainClient; // Dummy client for mocked mode
     if (!chainClient) {
         // Use HttpChain instead of HttpCachingChain to prevent memory leak
         // HttpCachingChain caches all beacons indefinitely, causing OOM after days of uptime
@@ -30,7 +30,7 @@ export async function getChainInfo() {
             metadata: {
                 beaconID: 'quicknet'
             }
-        } as any;
+        } as Awaited<ReturnType<HttpChain['info']>>;
     }
     const client = await getChainClient();
     return await client.chain().info();

@@ -89,9 +89,9 @@ export async function POST(request: NextRequest) {
             ids: createdItems.map(i => i.id)
         }, 201);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         if (error instanceof z.ZodError) {
-            const message = (error as any).issues?.[0]?.message || (error as any).errors?.[0]?.message || 'Invalid batch input';
+            const message = error.issues?.[0]?.message || 'Invalid batch input';
             return errorResponse('VALIDATION_ERROR', message, 400);
         }
         return errorResponse('INTERNAL_ERROR', 'Failed to batch create', 500);
