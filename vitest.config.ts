@@ -20,6 +20,7 @@ export default defineConfig({
             // Ensure these match tests/test-db-setup.ts
             TEST_TOKEN: 'tok_test_integration_fixed',
             UNIT_TEST_TOKEN: 'tok_test_integration_fixed',
+            API_TOKEN: 'tok_test_integration_fixed',
             DATABASE_URL: 'postgresql://chaster:chaster_password@localhost:5432/chaster'
         }
     },

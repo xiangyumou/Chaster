@@ -56,6 +56,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://chaster:chaster_password@localhost:5432/chaster
           TEST_TOKEN: tok_test_integration_fixed
+          API_TOKEN: tok_test_integration_fixed
           RUN_INTEGRATION_TESTS: 1
         run: |
           # Start the app in the background
