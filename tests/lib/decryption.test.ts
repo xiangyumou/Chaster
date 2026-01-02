@@ -1,5 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
 
+/**
+ * Decryption Unit Tests - Using Mocks for Layer Logic Validation
+ * 
+ * These tests mock the underlying tlock decrypt to focus on testing the
+ * multi-layer decryption logic in decryption.ts. The mocks allow us to:
+ * - Test layer-by-layer unwrapping behavior
+ * - Verify error handling at each layer
+ * - Run fast in CI without network calls
+ * 
+ * For integration testing with real encryption, use the items route tests.
+ */
+
 // Mock tlock before importing decryption (which depends on it)
 vi.mock('@/lib/tlock', () => ({
     decrypt: vi.fn()

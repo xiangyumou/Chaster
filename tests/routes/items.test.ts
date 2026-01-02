@@ -86,6 +86,8 @@ describe('Items API (In-Process Coverage)', () => {
 
         expect(res.status).toBe(200);
         expect(Array.isArray(data.items)).toBe(true);
+        // Ensure filter returns results to validate
+        expect(data.items.length).toBeGreaterThan(0);
         // Verify all returned items have correct status (locked = unlocked:false)
         // This assertion always executes and validates the filter logic
         data.items.forEach((item: { unlocked: boolean }) => {

@@ -85,7 +85,10 @@ describe('Admin Tokens [token] API (In-Process)', () => {
             });
             const res = await PATCH(req, { params: Promise.resolve({ token: 'non_existent_token_12345' }) });
 
-            expect(res.status).toBe(500); // Internal error from Prisma not finding record
+            // NOTE: Prisma's update() throws when record not found, resulting in 500.
+            // This is acceptable behavior for admin endpoints. A 404 would require
+            // an explicit findFirst check before update, adding latency for a rare case.
+            expect(res.status).toBe(500);
         });
 
         it('should fail without authentication', async () => {

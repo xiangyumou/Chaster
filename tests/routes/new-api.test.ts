@@ -82,8 +82,8 @@ describe('New API Endpoints (P0-P2)', () => {
 
             expect(res.status).toBe(200);
             expect(Array.isArray(data.items)).toBe(true);
-            // Test creates items in beforeAll, so items should exist
-            // Use forEach to validate each item - handles empty safely
+            // Test creates items in beforeAll, ensure we have items to validate
+            expect(data.items.length).toBeGreaterThan(0);
             data.items.forEach((item: { encryptedData: string }) => {
                 expect(item.encryptedData).toBeDefined();
             });
@@ -95,6 +95,8 @@ describe('New API Endpoints (P0-P2)', () => {
             const data = await res.json();
 
             expect(res.status).toBe(200);
+            // Ensure we have items to validate
+            expect(data.items.length).toBeGreaterThan(0);
             data.items.forEach((item: { unlocked: boolean }) => {
                 expect(item.unlocked).toBe(false);
             });

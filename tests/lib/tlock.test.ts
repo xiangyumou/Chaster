@@ -1,6 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { encrypt, decrypt, getChainInfo, getRoundForTime, canDecrypt } from '@/lib/tlock';
 
+/**
+ * Tlock Unit Tests - Using Mocks for CI Speed
+ * 
+ * These tests mock the drand-client and tlock-js libraries to enable fast,
+ * deterministic testing in CI environments. The actual tlock.ts module has
+ * a TEST_MODE that returns mock responses (mock_ct:* prefix).
+ * 
+ * For real integration testing with the drand network, run the integration
+ * test suite against a live server.
+ */
+
 // Mock drand-client
 vi.mock('drand-client', () => ({
     HttpChain: vi.fn()

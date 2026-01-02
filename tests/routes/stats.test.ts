@@ -66,12 +66,12 @@ describe('Stats API (In-Process)', () => {
             const data = await res.json();
 
             expect(res.status).toBe(200);
-            // The test suite creates items in items.test.ts which runs before this
-            // Even if no items, the API should return valid types
+            // Validate types - should be number or null
             expect(data.oldestItem === null || typeof data.oldestItem === 'number').toBe(true);
             expect(data.newestItem === null || typeof data.newestItem === 'number').toBe(true);
-            // If both are numbers, oldest should be <= newest
-            if (typeof data.oldestItem === 'number' && typeof data.newestItem === 'number') {
+            // When items exist (created by other tests), validate ordering
+            // Note: If both are numbers, the assertion runs; if null, test still passes type validation
+            if (data.oldestItem !== null && data.newestItem !== null) {
                 expect(data.oldestItem).toBeLessThanOrEqual(data.newestItem);
             }
         });

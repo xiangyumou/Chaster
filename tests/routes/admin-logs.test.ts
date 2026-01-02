@@ -73,6 +73,8 @@ describe('Admin Logs API (In-Process)', () => {
             const data = await res.json();
 
             expect(res.status).toBe(200);
+            // Ensure we have logs to validate
+            expect(data.logs.length).toBeGreaterThan(0);
             data.logs.forEach((log: { token: string }) => {
                 expect(log.token).toBe(testToken);
             });
@@ -84,6 +86,8 @@ describe('Admin Logs API (In-Process)', () => {
             const data = await res.json();
 
             expect(res.status).toBe(200);
+            // Ensure we have logs to validate
+            expect(data.logs.length).toBeGreaterThan(0);
             data.logs.forEach((log: { method: string }) => {
                 expect(log.method).toBe('GET');
             });
@@ -95,6 +99,8 @@ describe('Admin Logs API (In-Process)', () => {
             const data = await res.json();
 
             expect(res.status).toBe(200);
+            // Ensure we have logs to validate
+            expect(data.logs.length).toBeGreaterThan(0);
             data.logs.forEach((log: { endpoint: string }) => {
                 expect(log.endpoint).toContain('/test/endpoint');
             });
@@ -106,6 +112,8 @@ describe('Admin Logs API (In-Process)', () => {
             const data = await res.json();
 
             expect(res.status).toBe(200);
+            // Ensure we have logs to validate
+            expect(data.logs.length).toBeGreaterThan(0);
             data.logs.forEach((log: { statusCode: number }) => {
                 expect(log.statusCode).toBe(200);
             });
@@ -262,9 +270,12 @@ describe('Admin Logs API (In-Process)', () => {
                 // No body
             });
             const res = await DELETE(req);
+            const data = await res.json();
 
-            // Should return 200 (deletes all logs if no filter)
-            expect([200, 400]).toContain(res.status);
+            // Empty body should be treated as delete with no filters
+            // The API returns 200 with deletedCount (may be 0 if no logs exist)
+            expect(res.status).toBe(200);
+            expect(data.deletedCount).toBeGreaterThanOrEqual(0);
         });
 
         it('should fail without authentication', async () => {
