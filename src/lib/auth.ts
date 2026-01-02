@@ -31,8 +31,20 @@ export async function authenticate(
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    const validToken = process.env.API_TOKEN;
 
-    if (!token) {
+    if (!validToken) {
+        console.error('API_TOKEN env var is missing');
+        return {
+            error: NextResponse.json({ error: { code: 'CONFIG_ERROR', message: 'Server configuration error' } }, { status: 500 })
+        };
+    }
+
+    // DEBUG: Temporary logs
+    console.log(`Auth Debug: Received=${token.length} chars, Valid=${validToken.length} chars`);
+    console.log(`Auth Debug: Received="${token}", Valid="${validToken}"`);
+
+    if (token.length !== validToken.length) {
         return {
             error: NextResponse.json(
                 {

@@ -1,7 +1,8 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'; // Added NextResponse
 import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/rate-limit-wrapper'; // Added import
 
 /**
  * @swagger
@@ -34,7 +35,7 @@ import { logger } from '@/lib/logger';
  *       401:
  *         description: Unauthorized
  */
-export async function GET(request: NextRequest) {
+async function getStats(request: NextRequest) { // Renamed GET to getStats
     // Authenticate
     const authResult = await authenticate(request);
     if ('error' in authResult) return authResult.error;

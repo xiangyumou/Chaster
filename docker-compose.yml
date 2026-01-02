@@ -27,12 +27,31 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER:-chaster}:${POSTGRES_PASSWORD:-chaster_password}@db:5432/${POSTGRES_DB:-chaster}
+      REDIS_URL: redis://redis:6379
       MOCK_DRAND: "true"
       API_TOKEN: ${API_TOKEN:-your_secure_token_here}
     restart: always
 
+  redis:
+    image: redis:7-alpine
+    container_name: chaster-redis
+    restart: always
+    command: redis-server --appendonly yes --appendfsync everysec
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
 volumes:
   postgres_data:
+  redis_data:
