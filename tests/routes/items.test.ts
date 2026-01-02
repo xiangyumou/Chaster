@@ -252,7 +252,7 @@ describe('Items API (In-Process Coverage)', () => {
         expect(data.items.length).toBeGreaterThanOrEqual(2);
 
         // Verify sorting order: earlier decrypt time first
-        const times = data.items.map((i: any) => i.decryptAt);
+        const times = data.items.map((i: { decryptAt: number }) => i.decryptAt);
         const sortedTimes = [...times].sort((a, b) => a - b);
         expect(times).toEqual(sortedTimes);
     });
@@ -275,7 +275,7 @@ describe('Items API (In-Process Coverage)', () => {
 
         expect(res.status).toBe(200);
         expect(data.items.length).toBeGreaterThan(0);
-        data.items.forEach((item: any) => {
+        data.items.forEach((item: { createdAt: number }) => {
             expect(item.createdAt).toBeGreaterThanOrEqual(now - 10000);
         });
     });
@@ -295,7 +295,7 @@ describe('Items API (In-Process Coverage)', () => {
         const data = await res.json();
 
         expect(res.status).toBe(200);
-        const found = data.items.find((i: any) => i.metadata && i.metadata.specialty === 'testing');
+        const found = data.items.find((i: { metadata?: { specialty?: string } }) => i.metadata && i.metadata.specialty === 'testing');
         expect(found).toBeDefined();
     });
 

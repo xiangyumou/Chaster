@@ -14,7 +14,7 @@ describe('Lib: Rate Limit Wrapper', () => {
     });
 
     // Helper to create a dummy handler
-    const mockHandler = vi.fn(async (_req: NextRequest) => {
+    const mockHandler = vi.fn(async () => {
         return NextResponse.json({ success: true });
     });
 

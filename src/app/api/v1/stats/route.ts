@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'; // Added NextResponse
+import { NextRequest } from 'next/server'; // Added NextResponse
 import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
 import { logger } from '@/lib/logger';
@@ -66,9 +66,7 @@ async function getStats(request: NextRequest) { // Renamed GET to getStats
         }
 
         // Get oldest and newest items
-        const oldestItem = allItems.length > 0
-            ? Math.min(...allItems.map((item) => Number(item.createdAt)))
-            : null;
+
         const newestItem = allItems.length > 0
             ? Math.max(...allItems.map((item) => Number(item.createdAt)))
             : null;

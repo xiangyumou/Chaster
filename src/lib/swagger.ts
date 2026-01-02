@@ -61,5 +61,5 @@ export const swaggerOptions: Options = {
             },
         ],
     },
-    apis: ['./src/app/api/v1/**/*.ts'], // Path to the API docs
+    apis: [process.cwd() + '/src/app/api/v1/**/*.ts'], // Ensure absolute path for Next.js
 };

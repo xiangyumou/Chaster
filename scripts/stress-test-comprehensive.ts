@@ -5,7 +5,7 @@
  */
 
 import { MetricsCollector, formatMetrics } from '../tests/stress/metrics.js';
-import { EndpointTester, TEST_SCENARIOS, ScenarioConfig } from '../tests/stress/scenarios.js';
+import { EndpointTester, TEST_SCENARIOS } from '../tests/stress/scenarios.js';
 import pLimit from 'p-limit';
 
 // Parse command line arguments manually since we want to avoid extra deps if possible,
@@ -52,7 +52,7 @@ class StressTestRunner {
 
         for (let i = 0; i < totalRequests; i++) {
             tasks.push(limit(async () => {
-                // @ts-ignore - dynamic method access
+                // @ts-expect-error - dynamic method access
                 const method = this.tester[endpointName];
                 if (typeof method === 'function') {
                     const result = await method.call(this.tester, i);
@@ -110,7 +110,7 @@ class StressTestRunner {
                     // Let's stick to safe idempotent reads or creates.
                     result = await this.tester.listItems(1, 10);
                 } else {
-                    // @ts-ignore
+                    // @ts-expect-error - dynamic method access
                     result = await this.tester[action.method].call(this.tester, i);
                 }
 
