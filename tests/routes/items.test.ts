@@ -148,6 +148,24 @@ describe('Items API (In-Process Coverage)', () => {
         expect(data.content).toBe('Coverage Content'); // Should be present!
     });
 
+    it('should return 400 when extending with invalid minutes', async () => {
+        const req = createRequest('POST', `/items/${createdId}/extend`, {
+            minutes: -10
+        });
+        const res = await EXTEND(req, { params: Promise.resolve({ id: createdId }) });
+        const data = await res.json();
+        expect(res.status).toBe(400);
+        expect(data.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should return 404 when extending non-existent item', async () => {
+        const req = createRequest('POST', `/items/${createdId}/extend`, {
+            minutes: 10
+        });
+        const res = await EXTEND(req, { params: Promise.resolve({ id: '00000000-0000-0000-0000-000000000000' }) });
+        expect(res.status).toBe(404);
+    });
+
     // Validations (Coverage for catch blocks)
     it('should fail creation with empty content', async () => {
         const req = createRequest('POST', '/items', {

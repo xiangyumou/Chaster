@@ -25,6 +25,10 @@ export function getRedisClient(): Redis {
         });
 
         redisClient.on('error', (error) => {
+            // Silence connection errors in test environment to reduce noise
+            if (process.env.NODE_ENV === 'test' && error.message.includes('ECONNREFUSED')) {
+                return;
+            }
             logger.error('Redis client error', error);
         });
 

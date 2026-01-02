@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { NextRequest } from 'next/server';
+import { getPrismaClient } from '@/lib/prisma';
 import { POST, GET } from '@/app/api/v1/items/route';
 import { POST as BATCH_DELETE } from '@/app/api/v1/items/batch/delete/route';
 import { POST as BATCH_GET } from '@/app/api/v1/items/batch/get/route';
@@ -207,6 +208,52 @@ describe('New API Endpoints (P0-P2)', () => {
 
             expect(res.status).toBe(400);
         });
+
+        it('should respect includeContent=false', async () => {
+            // Ensure item is unlocked first
+            const prisma = getPrismaClient();
+            await prisma.item.update({
+                where: { id: createdIds[0] },
+                data: { decryptAt: BigInt(Date.now() - 1000) }
+            });
+
+            const req = createRequest('POST', '/items/batch/get', {
+                ids: createdIds.slice(0, 1),
+                includeContent: false
+            });
+            const res = await BATCH_GET(req);
+            const data = await res.json();
+
+            expect(res.status).toBe(200);
+            expect(data.found).toBe(1);
+            expect(data.items[0].unlocked).toBe(true);
+            expect(data.items[0].content).toBeUndefined();
+        });
+
+        it('should handle decryption error gracefully', async () => {
+            // Ensure item is unlocked
+            const prisma = getPrismaClient();
+            await prisma.item.update({
+                where: { id: createdIds[0] },
+                data: { decryptAt: BigInt(Date.now() - 1000) }
+            });
+
+            // Mock decryption failure
+            const { decrypt } = await import('@/lib/decryption');
+            vi.mocked(decrypt).mockRejectedValueOnce(new Error('Decryption failed'));
+
+            const req = createRequest('POST', '/items/batch/get', {
+                ids: createdIds.slice(0, 1),
+            });
+            const res = await BATCH_GET(req);
+            const data = await res.json();
+
+            expect(res.status).toBe(200);
+            expect(data.items[0].unlocked).toBe(true);
+            expect(data.items[0].content).toBeNull();
+            expect(data.items[0].decryptionError).toBe(true);
+        });
+
     });
 
     // ========== Update Metadata API Tests ==========

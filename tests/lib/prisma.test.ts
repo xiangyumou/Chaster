@@ -39,7 +39,7 @@ describe('Lib: Prisma', () => {
             const created = await prisma.item.create({
                 data: {
                     type: 'text',
-                    encryptedData: 'test_crud_encrypted',
+                    encryptedData: 'test_crud_encrypted_with_special_chars_+=/',
                     decryptAt: BigInt(Date.now() + 60000),
                     roundNumber: 12345,
                     layerCount: 1,
@@ -50,7 +50,7 @@ describe('Lib: Prisma', () => {
 
             expect(created.id).toBeDefined();
             expect(created.type).toBe('text');
-            expect(created.encryptedData).toBe('test_crud_encrypted');
+            expect(created.encryptedData).toBe('test_crud_encrypted_with_special_chars_+=/');
             expect(created.layerCount).toBe(1);
 
             // Read
