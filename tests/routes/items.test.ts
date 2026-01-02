@@ -302,7 +302,7 @@ describe('Items API (In-Process Coverage)', () => {
     it('should delete item', async () => {
         const req = createRequest('DELETE', `/items/${createdId}`);
         const res = await DELETE(req, { params: Promise.resolve({ id: createdId }) });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(204);
     });
 
     it('should return 404 for deleted item', async () => {

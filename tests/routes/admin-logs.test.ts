@@ -203,10 +203,8 @@ describe('Admin Logs API (In-Process)', () => {
                 token: 'delete_test_token',
             });
             const res = await DELETE(req);
-            const data = await res.json();
 
-            expect(res.status).toBe(200);
-            expect(typeof data.deletedCount).toBe('number');
+            expect(res.status).toBe(204);
         });
 
         it('should delete logs before timestamp', async () => {
@@ -228,10 +226,8 @@ describe('Admin Logs API (In-Process)', () => {
                 beforeTimestamp: oldTimestamp + 1000, // Just after the old log
             });
             const res = await DELETE(req);
-            const data = await res.json();
 
-            expect(res.status).toBe(200);
-            expect(typeof data.deletedCount).toBe('number');
+            expect(res.status).toBe(204);
         });
 
         it('should delete all logs when no filters provided', async () => {
@@ -252,10 +248,8 @@ describe('Admin Logs API (In-Process)', () => {
                 token: 'all_delete_test', // Only delete test logs
             });
             const res = await DELETE(req);
-            const data = await res.json();
 
-            expect(res.status).toBe(200);
-            expect(data.deletedCount).toBeGreaterThanOrEqual(0);
+            expect(res.status).toBe(204);
         });
 
         it('should handle empty body gracefully', async () => {
@@ -268,12 +262,9 @@ describe('Admin Logs API (In-Process)', () => {
                 // No body
             });
             const res = await DELETE(req);
-            const data = await res.json();
 
             // Empty body should be treated as delete with no filters
-            // The API returns 200 with deletedCount (may be 0 if no logs exist)
-            expect(res.status).toBe(200);
-            expect(data.deletedCount).toBeGreaterThanOrEqual(0);
+            expect(res.status).toBe(204);
         });
 
         it('should fail without authentication', async () => {

@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, errorResponse, successResponse } from '@/lib/auth';
 import { decrypt } from '@/lib/decryption';
@@ -121,7 +121,7 @@ export async function GET(
  *           type: string
  *         description: Item ID
  *     responses:
- *       200:
+ *       204:
  *         description: Item deleted
  *       404:
  *         description: Item not found
@@ -155,7 +155,7 @@ export async function DELETE(
             where: { id: params.id },
         });
 
-        return successResponse({ success: true });
+        return new NextResponse(null, { status: 204 });
     } catch (error) {
         logger.error('Error deleting item', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to delete item', 500);

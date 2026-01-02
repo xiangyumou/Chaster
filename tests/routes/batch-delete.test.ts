@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-import { POST as BATCH_DELETE } from '@/app/api/v1/items/batch/delete/route';
+import { DELETE as BATCH_DELETE } from '@/app/api/v1/items/batch/delete/route';
 import { POST as CREATE_ITEM } from '@/app/api/v1/items/route';
 import { getPrismaClient } from '@/lib/prisma';
 
@@ -74,7 +74,7 @@ describe('Batch Delete API (Enhanced Coverage)', () => {
                 idsToDelete.push(data.id);
             }
 
-            const req = createRequest('POST', '/items/batch/delete', {
+            const req = createRequest('DELETE', '/items/batch/delete', {
                 ids: idsToDelete,
             });
             const res = await BATCH_DELETE(req);
@@ -88,7 +88,7 @@ describe('Batch Delete API (Enhanced Coverage)', () => {
 
         it('should handle non-existent IDs gracefully', async () => {
             // Use valid UUID v4 format that doesn't exist in DB
-            const req = createRequest('POST', '/items/batch/delete', {
+            const req = createRequest('DELETE', '/items/batch/delete', {
                 ids: ['a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22'],
             });
             const res = await BATCH_DELETE(req);
@@ -100,7 +100,7 @@ describe('Batch Delete API (Enhanced Coverage)', () => {
         });
 
         it('should fail with invalid UUID format', async () => {
-            const req = createRequest('POST', '/items/batch/delete', {
+            const req = createRequest('DELETE', '/items/batch/delete', {
                 ids: ['not-a-valid-uuid'],
             });
             const res = await BATCH_DELETE(req);
@@ -109,7 +109,7 @@ describe('Batch Delete API (Enhanced Coverage)', () => {
         });
 
         it('should fail with empty IDs array', async () => {
-            const req = createRequest('POST', '/items/batch/delete', {
+            const req = createRequest('DELETE', '/items/batch/delete', {
                 ids: [],
             });
             const res = await BATCH_DELETE(req);
@@ -136,7 +136,7 @@ describe('Batch Delete API (Enhanced Coverage)', () => {
             }
 
             // Delete by IDs (safe)
-            const req = createRequest('POST', '/items/batch/delete', { ids });
+            const req = createRequest('DELETE', '/items/batch/delete', { ids });
             const res = await BATCH_DELETE(req);
             const data = await res.json();
 
@@ -145,7 +145,7 @@ describe('Batch Delete API (Enhanced Coverage)', () => {
         });
 
         it('should return empty result for beforeDate filter with old timestamp', async () => {
-            const req = createRequest('POST', '/items/batch/delete', {
+            const req = createRequest('DELETE', '/items/batch/delete', {
                 filter: {
                     beforeDate: 1000, // Very old timestamp (1970)
                 },
@@ -160,7 +160,7 @@ describe('Batch Delete API (Enhanced Coverage)', () => {
         });
 
         it('should return empty result for afterDate filter with future timestamp', async () => {
-            const req = createRequest('POST', '/items/batch/delete', {
+            const req = createRequest('DELETE', '/items/batch/delete', {
                 filter: {
                     afterDate: Date.now() + 1000 * 60 * 60 * 24 * 365, // 1 year from now
                 },
@@ -174,7 +174,7 @@ describe('Batch Delete API (Enhanced Coverage)', () => {
         });
 
         it('should handle combined filter with impossible conditions', async () => {
-            const req = createRequest('POST', '/items/batch/delete', {
+            const req = createRequest('DELETE', '/items/batch/delete', {
                 filter: {
                     beforeDate: 1000, // Very old
                     afterDate: 500, // Even older
@@ -190,7 +190,7 @@ describe('Batch Delete API (Enhanced Coverage)', () => {
 
         it('should handle status filter with unlocked (no items unlocked yet)', async () => {
             // All items are locked (future decryptAt), so unlocked filter returns 0
-            const req = createRequest('POST', '/items/batch/delete', {
+            const req = createRequest('DELETE', '/items/batch/delete', {
                 filter: {
                     status: 'unlocked',
                     beforeDate: 1000, // Also add safety filter
@@ -207,7 +207,7 @@ describe('Batch Delete API (Enhanced Coverage)', () => {
     describe('Authentication', () => {
         it('should fail without authentication', async () => {
             const req = new NextRequest(`${BASE_URL}/items/batch/delete`, {
-                method: 'POST',
+                method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ids: ['00000000-0000-0000-0000-000000000000'] }),
             });

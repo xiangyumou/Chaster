@@ -22,7 +22,7 @@ const batchDeleteSchema = z.union([deleteByIdsSchema, deleteByFilterSchema]);
 /**
  * @swagger
  * /items/batch/delete:
- *   post:
+ *   delete:
  *     summary: Batch delete items
  *     description: Delete multiple items by IDs or filter criteria.
  *     tags: [Items]
@@ -77,7 +77,7 @@ const batchDeleteSchema = z.union([deleteByIdsSchema, deleteByFilterSchema]);
  *       401:
  *         description: Unauthorized
  */
-export async function POST(request: NextRequest) {
+export async function DELETE(request: NextRequest) {
     const authResult = await authenticate(request);
     if ('error' in authResult) return authResult.error;
 

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
-import { authenticate, errorResponse, successResponse } from '@/lib/auth';
+import { authenticate, errorResponse, successResponse, zodErrorToDetails } from '@/lib/auth';
 import { encrypt } from '@/lib/tlock';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/lib/logger';
@@ -225,7 +225,7 @@ async function getItems(request: NextRequest) {
     } catch (error: unknown) {
         if (error instanceof z.ZodError) {
             const message = error.issues?.[0]?.message || 'Validation error';
-            return errorResponse('VALIDATION_ERROR', message, 400);
+            return errorResponse('VALIDATION_ERROR', message, 400, zodErrorToDetails(error));
         }
 
         logger.error('Error fetching items', error);
@@ -327,7 +327,7 @@ async function createItem(request: NextRequest) {
     } catch (error: unknown) {
         if (error instanceof z.ZodError) {
             const message = error.issues?.[0]?.message || 'Validation error';
-            return errorResponse('VALIDATION_ERROR', message, 400);
+            return errorResponse('VALIDATION_ERROR', message, 400, zodErrorToDetails(error));
         }
 
         logger.error('Error creating item', error);

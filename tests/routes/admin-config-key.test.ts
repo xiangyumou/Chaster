@@ -131,10 +131,8 @@ describe('Admin Config [key] API (In-Process)', () => {
 
             const req = createRequest('DELETE', `/admin/config/${deleteKey}`);
             const res = await DELETE(req, { params: Promise.resolve({ key: deleteKey }) });
-            const data = await res.json();
 
-            expect(res.status).toBe(200);
-            expect(data.success).toBe(true);
+            expect(res.status).toBe(204);
         });
 
         it('should return 404 for non-existent key', async () => {

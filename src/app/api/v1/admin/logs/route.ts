@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
 import { z } from 'zod';
@@ -193,8 +193,8 @@ export async function GET(request: NextRequest) {
  *                 type: string
  *                 description: Delete logs for this token
  *     responses:
- *       200:
- *         description: Deletion result
+ *       204:
+ *         description: Logs deleted
  *       401:
  *         description: Unauthorized
  */
@@ -232,17 +232,13 @@ export async function DELETE(request: NextRequest) {
                 });
             }
 
-            return successResponse({
-                deletedCount: idsToDelete.length,
-            });
+            return new NextResponse(null, { status: 204 });
         }
 
         // Delete all matching logs (or all if no filter)
-        const result = await prisma.apiLog.deleteMany({ where });
+        await prisma.apiLog.deleteMany({ where });
 
-        return successResponse({
-            deletedCount: result.count,
-        });
+        return new NextResponse(null, { status: 204 });
     } catch (error: unknown) {
         if (error instanceof z.ZodError) {
             const message = error.issues?.[0]?.message || 'Validation error';

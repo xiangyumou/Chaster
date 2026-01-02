@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
 import { authenticate, successResponse, errorResponse } from '@/lib/auth';
 import { z } from 'zod';
@@ -136,7 +136,7 @@ export async function PUT(
  *         schema:
  *           type: string
  *     responses:
- *       200:
+ *       204:
  *         description: Config deleted
  *       404:
  *         description: Config not found
@@ -167,7 +167,7 @@ export async function DELETE(
             where: { key: params.key },
         });
 
-        return successResponse({ success: true });
+        return new NextResponse(null, { status: 204 });
     } catch (error) {
         logger.error('Config delete error', error);
         return errorResponse('INTERNAL_ERROR', 'Failed to delete config', 500);

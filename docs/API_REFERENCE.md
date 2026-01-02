@@ -172,6 +172,8 @@ Permanently remove an item from the database.
 
 **Endpoint:** `DELETE /items/:id`
 
+**Response:** `204 No Content`
+
 **Example:**
 ```bash
 curl -X DELETE http://localhost:3000/api/v1/items/ITEM_ID \
@@ -312,7 +314,9 @@ Import items from a backup.
 
 Delete multiple items at once.
 
-**Endpoint:** `POST /items/batch/delete`
+**Endpoint:** `DELETE /items/batch/delete`
+
+**Response:** `204 No Content`
 
 ```json
 // By IDs:
@@ -326,13 +330,15 @@ Delete multiple items at once.
 
 Retrieve multiple items at once.
 
-**Endpoint:** `POST /items/batch/get`
+**Endpoint:** `GET /items/batch/get?ids=id1,id2,id3&includeContent=true`
 
-```json
-{
-  "ids": ["id1", "id2", "id3"],
-  "includeContent": true
-}
+> **Note:** POST method is also supported for backwards compatibility.
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `ids` | `string` | Required | Comma-separated list of item IDs (max 100) |
+| `includeContent` | `boolean` | `true` | Include decrypted content for unlocked items |
 ```
 
 ### 3. Update Metadata
