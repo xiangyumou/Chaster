@@ -234,7 +234,29 @@ async function getItems(request: NextRequest) {
 }
 
 /**
- * POST /api/v1/items - Create new encrypted item
+ * @swagger
+ * /items:
+ *   post:
+ *     summary: Create encrypted item
+ *     description: Create a new time-locked encrypted item.
+ *     tags: [Items]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ItemInput'
+ *     responses:
+ *       201:
+ *         description: Item created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Item'
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
  */
 async function createItem(request: NextRequest) {
     // Authenticate

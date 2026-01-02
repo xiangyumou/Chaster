@@ -1,4 +1,5 @@
 import { Options } from 'swagger-jsdoc';
+import path from 'path';
 
 export const swaggerOptions: Options = {
     definition: {
@@ -72,5 +73,5 @@ export const swaggerOptions: Options = {
             },
         ],
     },
-    apis: [process.cwd() + '/src/app/api/v1/**/*.ts'], // Ensure absolute path for Next.js
+    apis: [path.join(process.cwd(), 'src/app/api/v1/**/*.ts')], // Ensure absolute path for Next.js
 };
