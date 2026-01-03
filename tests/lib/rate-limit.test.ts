@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { withRateLimit } from '@/lib/rate-limit-wrapper';
 import { NextRequest, NextResponse } from 'next/server';
 import * as RateLimitLib from '@/lib/ratelimit';
@@ -11,6 +11,12 @@ vi.mock('@/lib/ratelimit', () => ({
 describe('Lib: Rate Limit Wrapper', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        // Force a valid limit for unit tests so they don't get bypassed
+        vi.stubEnv('RATE_LIMIT_MAX', '100');
+    });
+
+    afterEach(() => {
+        vi.unstubAllEnvs();
     });
 
     // Helper to create a dummy handler
@@ -64,6 +70,10 @@ describe('Lib: Rate Limit Wrapper', () => {
     });
 
     it('should handle custom limits', async () => {
+        // Unstub env var for this test to allow custom limit argument to take effect
+        // (Implementation prioritizes Env Var > Argument)
+        vi.stubEnv('RATE_LIMIT_MAX', '');
+
         vi.mocked(RateLimitLib.checkRateLimit).mockResolvedValue({
             allowed: true,
             remaining: 4,

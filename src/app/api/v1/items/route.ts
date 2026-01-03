@@ -352,11 +352,5 @@ async function createItem(request: NextRequest) {
 export const GET = withRateLimit(getItems);
 export const POST = withRateLimit(createItem);
 
-// Route configuration: limit request body size to 10MB
-export const config = {
-    api: {
-        bodyParser: {
-            sizeLimit: '10mb',
-        },
-    },
-};
+// Route configuration
+export const dynamic = 'force-dynamic';
