@@ -70,6 +70,8 @@ jobs:
 
           RUN_INTEGRATION_TESTS: 1
           REDIS_URL: redis://localhost:6379
+          RATE_LIMIT_MAX: '0'
+          RATE_LIMIT_FAIL_OPEN: 'true'
         run: |
           # Start the app in the background
           npm run build
