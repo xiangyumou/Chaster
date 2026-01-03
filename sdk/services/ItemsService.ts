@@ -112,7 +112,7 @@ export class ItemsService {
     /**
      * Delete item
      * Permanently delete an item.
-     * @returns any Item deleted
+     * @returns void
      * @throws ApiError
      */
     public static deleteItems({
@@ -122,7 +122,7 @@ export class ItemsService {
          * Item ID
          */
         id: string,
-    }): CancelablePromise<any> {
+    }): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/items/{id}',
@@ -141,7 +141,7 @@ export class ItemsService {
      * @returns any Deletion result
      * @throws ApiError
      */
-    public static postItemsBatchDelete({
+    public static deleteItemsBatchDelete({
         requestBody,
     }: {
         requestBody: ({
@@ -168,7 +168,7 @@ export class ItemsService {
         deletedIds?: Array<string>;
     }> {
         return __request(OpenAPI, {
-            method: 'POST',
+            method: 'DELETE',
             url: '/items/batch/delete',
             body: requestBody,
             mediaType: 'application/json',
@@ -181,6 +181,45 @@ export class ItemsService {
     /**
      * Batch get items
      * Retrieve multiple items by IDs in a single request. Automatically decrypts unlocked items.
+     * @returns any List of items
+     * @throws ApiError
+     */
+    public static getItemsBatchGet({
+        ids,
+        includeContent = true,
+    }: {
+        /**
+         * Comma-separated list of item IDs to retrieve (max 100)
+         */
+        ids: string,
+        /**
+         * Whether to include decrypted content for unlocked items
+         */
+        includeContent?: boolean,
+    }): CancelablePromise<{
+        items?: Array<Item>;
+        found?: number;
+        notFound?: Array<string>;
+    }> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/items/batch/get',
+            query: {
+                'ids': ids,
+                'includeContent': includeContent,
+            },
+            errors: {
+                400: `Validation error`,
+                401: `Unauthorized`,
+            },
+        });
+    }
+    /**
+     * @deprecated
+     * Batch get items (legacy)
+     * Retrieve multiple items by IDs in a single request.
+     * **Deprecated**: Prefer GET /items/batch/get?ids=id1,id2 for RESTful semantics.
+     *
      * @returns any List of items
      * @throws ApiError
      */
@@ -197,11 +236,7 @@ export class ItemsService {
              */
             includeContent?: boolean;
         },
-    }): CancelablePromise<{
-        items?: Array<Item>;
-        found?: number;
-        notFound?: Array<string>;
-    }> {
+    }): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/items/batch/get',
@@ -274,6 +309,28 @@ export class ItemsService {
                 'offset': offset,
             },
             errors: {
+                401: `Unauthorized`,
+            },
+        });
+    }
+    /**
+     * Create encrypted item
+     * Create a new time-locked encrypted item.
+     * @returns Item Item created
+     * @throws ApiError
+     */
+    public static postItems({
+        requestBody,
+    }: {
+        requestBody: ItemInput,
+    }): CancelablePromise<Item> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/items',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Validation error`,
                 401: `Unauthorized`,
             },
         });

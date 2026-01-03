@@ -60,14 +60,14 @@ export class AdminService {
     /**
      * Delete config
      * Delete a configuration key.
-     * @returns any Config deleted
+     * @returns void
      * @throws ApiError
      */
     public static deleteAdminConfig({
         key,
     }: {
         key: string,
-    }): CancelablePromise<any> {
+    }): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/admin/config/{key}',
@@ -240,7 +240,7 @@ export class AdminService {
     /**
      * Delete API logs
      * Delete API logs matching criteria.
-     * @returns any Deletion result
+     * @returns void
      * @throws ApiError
      */
     public static deleteAdminLogs({
@@ -256,7 +256,7 @@ export class AdminService {
              */
             token?: string;
         },
-    }): CancelablePromise<any> {
+    }): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/admin/logs',

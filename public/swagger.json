@@ -212,7 +212,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "description": "Config deleted"
           },
           "401": {
@@ -514,8 +514,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Deletion result"
+          "204": {
+            "description": "Logs deleted"
           },
           "401": {
             "description": "Unauthorized"
@@ -863,7 +863,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "description": "Item deleted"
           },
           "401": {
@@ -876,7 +876,7 @@
       }
     },
     "/items/batch/delete": {
-      "post": {
+      "delete": {
         "summary": "Batch delete items",
         "description": "Delete multiple items by IDs or filter criteria.",
         "tags": [
@@ -975,12 +975,75 @@
       }
     },
     "/items/batch/get": {
-      "post": {
+      "get": {
         "summary": "Batch get items",
         "description": "Retrieve multiple items by IDs in a single request. Automatically decrypts unlocked items.",
         "tags": [
           "Items"
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ids",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated list of item IDs to retrieve (max 100)"
+          },
+          {
+            "in": "query",
+            "name": "includeContent",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            },
+            "description": "Whether to include decrypted content for unlocked items"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Item"
+                      }
+                    },
+                    "found": {
+                      "type": "integer"
+                    },
+                    "notFound": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "summary": "Batch get items (legacy)",
+        "description": "Retrieve multiple items by IDs in a single request.\n**Deprecated**: Prefer GET /items/batch/get?ids=id1,id2 for RESTful semantics.\n",
+        "tags": [
+          "Items"
+        ],
+        "deprecated": true,
         "requestBody": {
           "required": true,
           "content": {
@@ -1010,31 +1073,7 @@
         },
         "responses": {
           "200": {
-            "description": "List of items",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Item"
-                      }
-                    },
-                    "found": {
-                      "type": "integer"
-                    },
-                    "notFound": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
+            "description": "List of items"
           },
           "400": {
             "description": "Validation error"
@@ -1150,6 +1189,41 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create encrypted item",
+        "description": "Create a new time-locked encrypted item.",
+        "tags": [
+          "Items"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Item created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Item"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
           },
           "401": {
             "description": "Unauthorized"
