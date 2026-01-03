@@ -24,4 +24,3 @@ export const TEST_CONFIG = {
     BASE_URL: process.env.TEST_BASE_URL || 'http://localhost:3000/api/v1',
     TOKEN: process.env.TEST_TOKEN || '',
 };
-console.log('DEBUG: TEST_CONFIG.TOKEN:', TEST_CONFIG.TOKEN);

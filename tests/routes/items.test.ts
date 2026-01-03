@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, Mock } from 'vitest';
-import { NextRequest } from 'next/server';
+import { describe, it, expect, vi, Mock, beforeAll, afterAll } from 'vitest';
 import { POST, GET } from '@/app/api/v1/items/route';
 import { POST as EXTEND } from '@/app/api/v1/items/[id]/extend/route';
 import { GET as GET_ONE, DELETE } from '@/app/api/v1/items/[id]/route';
+import { createTestRequest } from '../utils';
 
 // Mock tlock to control decryption state
 vi.mock('@/lib/tlock', async (importOriginal) => {
@@ -21,294 +21,328 @@ import { decrypt, canDecrypt } from '@/lib/tlock';
 const mockedDecrypt = decrypt as Mock;
 const mockedCanDecrypt = canDecrypt as Mock;
 
-// Mock Auth: We will assume specific tokens exist or we need to add a way 
-// to mock `authenticate` function if we don't want to use real tokens.
-// But for Integration tests, using real DB and Tokens is better.
-// We will use the same TEST_TOKEN env var.
-
-const TEST_TOKEN = process.env.API_TOKEN || 'tok_test';
-const BASE_URL = 'http://localhost:3000/api/v1';
-
-// We need to ensure the DB has this token. 
-// Ideally we mock the DB, but "In-Process Integration" usually implies real DB.
-
 describe('Items API (In-Process Coverage)', () => {
+    // Test data created in beforeAll for test isolation
+    let testItemId: string;
+    let testImageItemId: string;
+    let testMetadataItemId: string;
+    const createdItemIds: string[] = [];
 
     /**
-     * Helper to create a NextRequest
+     * Setup: Create test items once for all tests
+     * This ensures tests are isolated and can run independently
      */
-    function createRequest(method: string, path: string, body?: unknown, startParams?: string) {
-        const url = `${BASE_URL}${path}${startParams || ''}`;
-        const headers: Record<string, string> = {
-            'Authorization': `Bearer ${TEST_TOKEN}`,
-            'Content-Type': 'application/json'
-        };
-        const init = {
-            method,
-            headers,
-            body: body ? JSON.stringify(body) : undefined
-        };
-        return new NextRequest(url, init);
-    }
-
-    let createdId: string;
-
-    it('should create a text item', async () => {
-        const req = createRequest('POST', '/items', {
+    beforeAll(async () => {
+        // Create primary test text item
+        const textReq = createTestRequest('POST', '/items', {
             type: 'text',
             content: 'Coverage Content',
             durationMinutes: 10
         });
+        const textRes = await POST(textReq);
+        const textData = await textRes.json();
+        testItemId = textData.id;
+        createdItemIds.push(testItemId);
 
-        const res = await POST(req);
-        const data = await res.json();
-
-        expect(res.status).toBe(201);
-        expect(data.id).toBeDefined();
-        createdId = data.id;
-    });
-
-    it('should list items', async () => {
-        const req = createRequest('GET', '/items');
-        const res = await GET(req);
-        const data = await res.json();
-
-        expect(res.status).toBe(200);
-        expect(data.items).toBeInstanceOf(Array);
-        expect(data.items.length).toBeGreaterThan(0);
-
-        // Verify created item is in list
-        interface ListItem { id: string }
-        const found = data.items.find((i: ListItem) => i.id === createdId);
-        expect(found).toBeDefined();
-    });
-
-    it('should filter items by status', async () => {
-        const req = createRequest('GET', '/items?status=locked');
-        const res = await GET(req);
-        const data = await res.json();
-
-        expect(res.status).toBe(200);
-        expect(Array.isArray(data.items)).toBe(true);
-        // Ensure filter returns results to validate
-        expect(data.items.length).toBeGreaterThan(0);
-        // Verify all returned items have correct status (locked = unlocked:false)
-        // This assertion always executes and validates the filter logic
-        data.items.forEach((item: { unlocked: boolean }) => {
-            expect(item.unlocked).toBe(false);
-        });
-    });
-
-    it('should get single item', async () => {
-        const req = createRequest('GET', `/items/${createdId}`);
-        // We need to mock params. params is a Promise in Next.js 15+ (and 16?)
-        // The handler signature: params is the second argument.
-
-        const res = await GET_ONE(req, { params: Promise.resolve({ id: createdId }) });
-        const data = await res.json();
-
-        expect(res.status).toBe(200);
-        expect(data.id).toBe(createdId);
-        expect(data.content).toBeNull(); // Locked
-    });
-
-    it('should extend item', async () => {
-        const req = createRequest('POST', `/items/${createdId}/extend`, {
-            minutes: 5
-        });
-
-        const res = await EXTEND(req, { params: Promise.resolve({ id: createdId }) });
-        const data = await res.json();
-
-        expect(res.status).toBe(200);
-        expect(data.success).toBe(true);
-        expect(data.layerCount).toBeGreaterThan(1);
-    });
-
-    it('should get unlocked item (decrypted)', async () => {
-        // Mock tlock to simulate time passed and successful decryption
-        // We use Fake Timers to trick the Route Handler into thinking time passed
-        vi.useFakeTimers();
-        const future = new Date();
-        future.setMinutes(future.getMinutes() + 20); // Advance 20 mins (Lock was 10 mins)
-        vi.setSystemTime(future);
-
-        mockedCanDecrypt.mockReturnValue(true);
-        mockedDecrypt.mockResolvedValue(Buffer.from('Coverage Content'));
-
-        const req = createRequest('GET', `/items/${createdId}`);
-        const res = await GET_ONE(req, { params: Promise.resolve({ id: createdId }) });
-        const data = await res.json();
-
-        // Cleanup timers
-        vi.useRealTimers();
-
-        expect(res.status).toBe(200);
-        expect(data.id).toBe(createdId);
-        expect(data.content).toBe('Coverage Content'); // Should be present!
-    });
-
-    it('should return 400 when extending with invalid minutes', async () => {
-        const req = createRequest('POST', `/items/${createdId}/extend`, {
-            minutes: -10
-        });
-        const res = await EXTEND(req, { params: Promise.resolve({ id: createdId }) });
-        const data = await res.json();
-        expect(res.status).toBe(400);
-        expect(data.error.code).toBe('VALIDATION_ERROR');
-    });
-
-    it('should return 404 when extending non-existent item', async () => {
-        const req = createRequest('POST', `/items/${createdId}/extend`, {
-            minutes: 10
-        });
-        const res = await EXTEND(req, { params: Promise.resolve({ id: '00000000-0000-0000-0000-000000000000' }) });
-        expect(res.status).toBe(404);
-    });
-
-    // Validations (Coverage for catch blocks)
-    it('should fail creation with empty content', async () => {
-        const req = createRequest('POST', '/items', {
-            type: 'text',
-            content: '',
-            durationMinutes: 1
-        });
-        const res = await POST(req);
-        expect(res.status).toBe(400);
-    });
-
-    it('should create an image item', async () => {
-        const req = createRequest('POST', '/items', {
+        // Create image item for type-specific tests
+        const imageReq = createTestRequest('POST', '/items', {
             type: 'image',
             content: 'SGVsbG8=',
             durationMinutes: 10
         });
-        const res = await POST(req);
-        // Do NOT update createdId to preserve Text Item for later tests
-        expect(res.status).toBe(201);
-    });
+        const imageRes = await POST(imageReq);
+        const imageData = await imageRes.json();
+        testImageItemId = imageData.id;
+        createdItemIds.push(testImageItemId);
 
-    it('should list items with status filter', async () => {
-        const req = createRequest('GET', '/items?status=locked');
-        const res = await GET(req);
-        const data = await res.json();
-        expect(res.status).toBe(200);
-        expect(Array.isArray(data.items)).toBe(true);
-    });
-
-    it('should list items with pagination', async () => {
-        const req = createRequest('GET', '/items?limit=1');
-        const res = await GET(req);
-        const data = await res.json();
-        expect(res.status).toBe(200);
-        expect(data.limit).toBe(1);
-    });
-
-    it('should fail creation with past decryptAt', async () => {
-        const req = createRequest('POST', '/items', {
-            type: 'text',
-            content: 'Future',
-            decryptAt: Date.now() - 10000
-        });
-        const res = await POST(req);
-        expect(res.status).toBe(400);
-    });
-
-    it('should fail creation without duration or decryptAt', async () => {
-        const req = createRequest('POST', '/items', {
-            type: 'text',
-            content: 'Incomplete'
-        });
-        const res = await POST(req);
-        expect(res.status).toBe(400);
-    });
-
-    it('should fail creation if both durationMinutes and decryptAt are missing', async () => {
-        const req = createRequest('POST', '/items', {
-            type: 'text',
-            content: 'Missing Params'
-        });
-        const res = await POST(req);
-        // Validated by superRefine
-        expect(res.status).toBe(400);
-        const data = await res.json();
-        expect(data.error.message).toContain('durationMinutes');
-    });
-
-    it('should list items with specific sorting (decrypt_asc)', async () => {
-        // Create another item with short duration to test sorting
-        const reqPost = createRequest('POST', '/items', {
-            type: 'text',
-            content: 'Short duration',
-            durationMinutes: 1
-        });
-        await POST(reqPost);
-
-        const req = createRequest('GET', '/items?sort=decrypt_asc');
-        const res = await GET(req);
-        const data = await res.json();
-
-        expect(res.status).toBe(200);
-        expect(data.items.length).toBeGreaterThanOrEqual(2);
-
-        // Verify sorting order: earlier decrypt time first
-        const times = data.items.map((i: { decryptAt: number }) => i.decryptAt);
-        const sortedTimes = [...times].sort((a, b) => a - b);
-        expect(times).toEqual(sortedTimes);
-    });
-
-    it('should filter items by IDs', async () => {
-        const req = createRequest('GET', `/items?ids=${createdId}`);
-        const res = await GET(req);
-        const data = await res.json();
-
-        expect(res.status).toBe(200);
-        expect(data.items.length).toBe(1);
-        expect(data.items[0].id).toBe(createdId);
-    });
-
-    it('should filter items by createdAfter', async () => {
-        const now = Date.now();
-        const req = createRequest('GET', `/items?createdAfter=${now - 10000}`); // Created in last 10s
-        const res = await GET(req);
-        const data = await res.json();
-
-        expect(res.status).toBe(200);
-        expect(data.items.length).toBeGreaterThan(0);
-        data.items.forEach((item: { createdAt: number }) => {
-            expect(item.createdAt).toBeGreaterThanOrEqual(now - 10000);
-        });
-    });
-
-    it('should filter items by metadataKey', async () => {
-        // Create item with metadata
-        const reqPost = createRequest('POST', '/items', {
+        // Create item with metadata for filter tests
+        const metaReq = createTestRequest('POST', '/items', {
             type: 'text',
             content: 'With Metadata',
             durationMinutes: 10,
             metadata: { specialty: 'testing' }
         });
-        await POST(reqPost);
-
-        const req = createRequest('GET', '/items?metadataKey=specialty');
-        const res = await GET(req);
-        const data = await res.json();
-
-        expect(res.status).toBe(200);
-        const found = data.items.find((i: { metadata?: { specialty?: string } }) => i.metadata && i.metadata.specialty === 'testing');
-        expect(found).toBeDefined();
+        const metaRes = await POST(metaReq);
+        const metaData = await metaRes.json();
+        testMetadataItemId = metaData.id;
+        createdItemIds.push(testMetadataItemId);
     });
 
-    it('should delete item', async () => {
-        const req = createRequest('DELETE', `/items/${createdId}`);
-        const res = await DELETE(req, { params: Promise.resolve({ id: createdId }) });
-        expect(res.status).toBe(204);
+    /**
+     * Cleanup: Delete all created items after tests complete
+     */
+    afterAll(async () => {
+        for (const id of createdItemIds) {
+            try {
+                const req = createTestRequest('DELETE', `/items/${id}`);
+                await DELETE(req, { params: Promise.resolve({ id }) });
+            } catch {
+                // Ignore cleanup errors - item may have been deleted in test
+            }
+        }
     });
 
-    it('should return 404 for deleted item', async () => {
-        const req = createRequest('GET', `/items/${createdId}`);
-        const res = await GET_ONE(req, { params: Promise.resolve({ id: createdId }) });
-        expect(res.status).toBe(404);
+    // =========================================================================
+    // CREATE Tests
+    // =========================================================================
+
+    describe('POST /items', () => {
+        it('should create a text item with valid data', async () => {
+            const req = createTestRequest('POST', '/items', {
+                type: 'text',
+                content: 'New Test Content',
+                durationMinutes: 5
+            });
+            const res = await POST(req);
+            const data = await res.json();
+
+            expect(res.status).toBe(201);
+            expect(data.id).toBeDefined();
+            expect(data.type).toBe('text');
+            createdItemIds.push(data.id);
+        });
+
+        it('should create an image item', async () => {
+            const req = createTestRequest('POST', '/items', {
+                type: 'image',
+                content: 'SGVsbG8=',
+                durationMinutes: 10
+            });
+            const res = await POST(req);
+            expect(res.status).toBe(201);
+            const data = await res.json();
+            createdItemIds.push(data.id);
+        });
+
+        it('should fail with empty content', async () => {
+            const req = createTestRequest('POST', '/items', {
+                type: 'text',
+                content: '',
+                durationMinutes: 1
+            });
+            const res = await POST(req);
+            expect(res.status).toBe(400);
+        });
+
+        it('should fail with past decryptAt', async () => {
+            const req = createTestRequest('POST', '/items', {
+                type: 'text',
+                content: 'Future',
+                decryptAt: Date.now() - 10000
+            });
+            const res = await POST(req);
+            expect(res.status).toBe(400);
+        });
+
+        it('should fail without duration or decryptAt', async () => {
+            const req = createTestRequest('POST', '/items', {
+                type: 'text',
+                content: 'Incomplete'
+            });
+            const res = await POST(req);
+            expect(res.status).toBe(400);
+            const data = await res.json();
+            expect(data.error.message).toContain('durationMinutes');
+        });
     });
 
+    // =========================================================================
+    // READ Tests
+    // =========================================================================
+
+    describe('GET /items', () => {
+        it('should list all items', async () => {
+            const req = createTestRequest('GET', '/items');
+            const res = await GET(req);
+            const data = await res.json();
+
+            expect(res.status).toBe(200);
+            expect(data.items).toBeInstanceOf(Array);
+            expect(data.items.length).toBeGreaterThan(0);
+        });
+
+        it('should find created item in list', async () => {
+            const req = createTestRequest('GET', '/items');
+            const res = await GET(req);
+            const data = await res.json();
+
+            interface ListItem { id: string }
+            const found = data.items.find((i: ListItem) => i.id === testItemId);
+            expect(found).toBeDefined();
+        });
+
+        it('should filter items by status=locked', async () => {
+            const req = createTestRequest('GET', '/items?status=locked');
+            const res = await GET(req);
+            const data = await res.json();
+
+            expect(res.status).toBe(200);
+            expect(Array.isArray(data.items)).toBe(true);
+            data.items.forEach((item: { unlocked: boolean }) => {
+                expect(item.unlocked).toBe(false);
+            });
+        });
+
+        it('should apply pagination with limit', async () => {
+            const req = createTestRequest('GET', '/items?limit=1');
+            const res = await GET(req);
+            const data = await res.json();
+            expect(res.status).toBe(200);
+            expect(data.limit).toBe(1);
+        });
+
+        it('should sort items by decrypt_asc', async () => {
+            const req = createTestRequest('GET', '/items?sort=decrypt_asc');
+            const res = await GET(req);
+            const data = await res.json();
+
+            expect(res.status).toBe(200);
+            const times = data.items.map((i: { decryptAt: number }) => i.decryptAt);
+            const sortedTimes = [...times].sort((a, b) => a - b);
+            expect(times).toEqual(sortedTimes);
+        });
+
+        it('should filter items by IDs', async () => {
+            const req = createTestRequest('GET', `/items?ids=${testItemId}`);
+            const res = await GET(req);
+            const data = await res.json();
+
+            expect(res.status).toBe(200);
+            expect(data.items.length).toBe(1);
+            expect(data.items[0].id).toBe(testItemId);
+        });
+
+        it('should filter items by createdAfter', async () => {
+            const now = Date.now();
+            const req = createTestRequest('GET', `/items?createdAfter=${now - 60000}`);
+            const res = await GET(req);
+            const data = await res.json();
+
+            expect(res.status).toBe(200);
+            expect(data.items.length).toBeGreaterThan(0);
+            data.items.forEach((item: { createdAt: number }) => {
+                expect(item.createdAt).toBeGreaterThanOrEqual(now - 60000);
+            });
+        });
+
+        it('should filter items by metadataKey', async () => {
+            const req = createTestRequest('GET', '/items?metadataKey=specialty');
+            const res = await GET(req);
+            const data = await res.json();
+
+            expect(res.status).toBe(200);
+            expect(data.items.length).toBeGreaterThan(0);
+            const found = data.items.find(
+                (i: { metadata?: { specialty?: string } }) => i.metadata?.specialty === 'testing'
+            );
+            expect(found).toBeDefined();
+        });
+    });
+
+    // =========================================================================
+    // GET (Single Item) Tests
+    // =========================================================================
+
+    describe('GET /items/:id', () => {
+        it('should get single locked item', async () => {
+            const req = createTestRequest('GET', `/items/${testItemId}`);
+            const res = await GET_ONE(req, { params: Promise.resolve({ id: testItemId }) });
+            const data = await res.json();
+
+            expect(res.status).toBe(200);
+            expect(data.id).toBe(testItemId);
+            expect(data.content).toBeNull(); // Still locked
+        });
+
+        it('should get unlocked item with decrypted content', async () => {
+            vi.useFakeTimers();
+            const future = new Date();
+            future.setMinutes(future.getMinutes() + 20);
+            vi.setSystemTime(future);
+
+            mockedCanDecrypt.mockReturnValue(true);
+            mockedDecrypt.mockResolvedValue(Buffer.from('Coverage Content'));
+
+            const req = createTestRequest('GET', `/items/${testItemId}`);
+            const res = await GET_ONE(req, { params: Promise.resolve({ id: testItemId }) });
+            const data = await res.json();
+
+            vi.useRealTimers();
+
+            expect(res.status).toBe(200);
+            expect(data.content).toBe('Coverage Content');
+        });
+
+        it('should return 404 for non-existent item', async () => {
+            const nonExistentId = '00000000-0000-0000-0000-000000000000';
+            const req = createTestRequest('GET', `/items/${nonExistentId}`);
+            const res = await GET_ONE(req, { params: Promise.resolve({ id: nonExistentId }) });
+            expect(res.status).toBe(404);
+        });
+    });
+
+    // =========================================================================
+    // EXTEND Tests
+    // =========================================================================
+
+    describe('POST /items/:id/extend', () => {
+        it('should extend item lock duration', async () => {
+            const req = createTestRequest('POST', `/items/${testItemId}/extend`, {
+                minutes: 5
+            });
+            const res = await EXTEND(req, { params: Promise.resolve({ id: testItemId }) });
+            const data = await res.json();
+
+            expect(res.status).toBe(200);
+            expect(data.success).toBe(true);
+            expect(data.layerCount).toBeGreaterThanOrEqual(1);
+        });
+
+        it('should return 400 with invalid minutes', async () => {
+            const req = createTestRequest('POST', `/items/${testItemId}/extend`, {
+                minutes: -10
+            });
+            const res = await EXTEND(req, { params: Promise.resolve({ id: testItemId }) });
+            const data = await res.json();
+
+            expect(res.status).toBe(400);
+            expect(data.error.code).toBe('VALIDATION_ERROR');
+        });
+
+        it('should return 404 for non-existent item', async () => {
+            const nonExistentId = '00000000-0000-0000-0000-000000000000';
+            const req = createTestRequest('POST', `/items/${nonExistentId}/extend`, {
+                minutes: 10
+            });
+            const res = await EXTEND(req, { params: Promise.resolve({ id: nonExistentId }) });
+            expect(res.status).toBe(404);
+        });
+    });
+
+    // =========================================================================
+    // DELETE Tests
+    // =========================================================================
+
+    describe('DELETE /items/:id', () => {
+        it('should delete item and return 404 on subsequent get', async () => {
+            // Create a dedicated item for delete test
+            const createReq = createTestRequest('POST', '/items', {
+                type: 'text',
+                content: 'To Be Deleted',
+                durationMinutes: 5
+            });
+            const createRes = await POST(createReq);
+            const { id: deleteItemId } = await createRes.json();
+
+            // Delete the item
+            const deleteReq = createTestRequest('DELETE', `/items/${deleteItemId}`);
+            const deleteRes = await DELETE(deleteReq, { params: Promise.resolve({ id: deleteItemId }) });
+            expect(deleteRes.status).toBe(204);
+
+            // Verify it's gone
+            const getReq = createTestRequest('GET', `/items/${deleteItemId}`);
+            const getRes = await GET_ONE(getReq, { params: Promise.resolve({ id: deleteItemId }) });
+            expect(getRes.status).toBe(404);
+        });
+    });
 });

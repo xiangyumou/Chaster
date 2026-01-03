@@ -1,30 +1,7 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fetch from 'node-fetch';
 import { TEST_CONFIG } from '../setup.js';
-
-// Response type interfaces
-interface ItemResponse {
-    id: string;
-    type: string;
-    layerCount: number;
-    unlocked: boolean;
-    content: string | null;
-    timeRemainingMs?: number;
-    decryptAt: number;
-}
-
-interface ErrorResponse {
-    error: {
-        code: string;
-        message: string;
-    };
-}
-
-// Helper to create valid auth header
-const authHeader = (token: string) => ({
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
-});
+import { authHeader, ItemResponse, ErrorResponse } from '../utils';
 
 // These are live integration tests that require a running server
 // They are skipped by default. To run them:
@@ -51,23 +28,61 @@ describeIntegration('Chaster Integration Tests', () => {
     });
 
     // =========================================================================
-    // 2.1 Core Business (Items API)
+    // Items API Tests
     // =========================================================================
 
     describe('Items API', () => {
-        let createdItemId: string;
+        // Test data created in beforeAll for test isolation
+        let testItemId: string;
+        const createdItemIds: string[] = [];
 
         /**
-         * IT-01: Happy Path - Create Text Item
+         * Setup: Create primary test item once for all tests in this describe block
+         * This ensures tests are isolated and can run independently
          */
-        it('IT-01: Create Standard Text Item', async () => {
+        beforeAll(async () => {
             const res = await fetch(`${TEST_CONFIG.BASE_URL}/items`, {
                 method: 'POST',
                 headers: authHeader(authToken),
                 body: JSON.stringify({
                     type: 'text',
                     content: 'Integration Test Content',
-                    durationMinutes: 1 // 1 min lock
+                    durationMinutes: 5
+                })
+            });
+            const data = await res.json() as ItemResponse;
+            testItemId = data.id;
+            createdItemIds.push(testItemId);
+        });
+
+        /**
+         * Cleanup: Delete all created items after tests complete
+         */
+        afterAll(async () => {
+            for (const id of createdItemIds) {
+                try {
+                    await fetch(`${TEST_CONFIG.BASE_URL}/items/${id}`, {
+                        method: 'DELETE',
+                        headers: authHeader(authToken)
+                    });
+                } catch {
+                    // Ignore cleanup errors
+                }
+            }
+        });
+
+        // =================================================================
+        // CREATE Tests
+        // =================================================================
+
+        it('should create a text item', async () => {
+            const res = await fetch(`${TEST_CONFIG.BASE_URL}/items`, {
+                method: 'POST',
+                headers: authHeader(authToken),
+                body: JSON.stringify({
+                    type: 'text',
+                    content: 'New Integration Test Item',
+                    durationMinutes: 1
                 })
             });
             const data = await res.json() as ItemResponse;
@@ -76,14 +91,10 @@ describeIntegration('Chaster Integration Tests', () => {
             expect(data.id).toBeDefined();
             expect(data.type).toBe('text');
             expect(data.layerCount).toBe(1);
-
-            createdItemId = data.id;
+            createdItemIds.push(data.id);
         });
 
-        /**
-         * IT-02: Happy Path - Create Image Item
-         */
-        it('IT-02: Create Standard Image Item', async () => {
+        it('should create an image item', async () => {
             const res = await fetch(`${TEST_CONFIG.BASE_URL}/items`, {
                 method: 'POST',
                 headers: authHeader(authToken),
@@ -94,12 +105,11 @@ describeIntegration('Chaster Integration Tests', () => {
                 })
             });
             expect(res.status).toBe(201);
+            const data = await res.json() as ItemResponse;
+            createdItemIds.push(data.id);
         });
 
-        /**
-         * IT-03: Boundary - Invalid Type
-         */
-        it('IT-03: Create Item with Invalid Type', async () => {
+        it('should fail with invalid type', async () => {
             const res = await fetch(`${TEST_CONFIG.BASE_URL}/items`, {
                 method: 'POST',
                 headers: authHeader(authToken),
@@ -114,10 +124,7 @@ describeIntegration('Chaster Integration Tests', () => {
             expect(data.error.code).toBe('VALIDATION_ERROR');
         });
 
-        /**
-         * IT-04: Boundary - Empty Content
-         */
-        it('IT-04: Create Item with Empty Content', async () => {
+        it('should fail with empty content', async () => {
             const res = await fetch(`${TEST_CONFIG.BASE_URL}/items`, {
                 method: 'POST',
                 headers: authHeader(authToken),
@@ -130,10 +137,7 @@ describeIntegration('Chaster Integration Tests', () => {
             expect(res.status).toBe(400);
         });
 
-        /**
-         * IT-05: Boundary - Negative Duration
-         */
-        it('IT-05: Create Item with Negative Duration', async () => {
+        it('should fail with negative duration', async () => {
             const res = await fetch(`${TEST_CONFIG.BASE_URL}/items`, {
                 method: 'POST',
                 headers: authHeader(authToken),
@@ -146,28 +150,25 @@ describeIntegration('Chaster Integration Tests', () => {
             expect(res.status).toBe(400);
         });
 
-        /**
-         * IT-06: State Logic - Get Locked Item
-         */
-        it('IT-06: Get Locked Item', async () => {
-            expect(createdItemId).toBeDefined();
-            const res = await fetch(`${TEST_CONFIG.BASE_URL}/items/${createdItemId}`, {
+        // =================================================================
+        // READ Tests
+        // =================================================================
+
+        it('should get locked item with hidden content', async () => {
+            const res = await fetch(`${TEST_CONFIG.BASE_URL}/items/${testItemId}`, {
                 method: 'GET',
                 headers: authHeader(authToken)
             });
             expect(res.status).toBe(200);
             const data = await res.json() as ItemResponse;
 
-            expect(data.id).toBe(createdItemId);
+            expect(data.id).toBe(testItemId);
             expect(data.unlocked).toBe(false);
             expect(data.content).toBeNull(); // Content should be hidden
             expect(data.timeRemainingMs).toBeGreaterThan(0);
         });
 
-        /**
-         * IT-07: Exception - Get Non-existent Item
-         */
-        it('IT-07: Get Non-existent Item', async () => {
+        it('should return 404 for non-existent item', async () => {
             const uuid = '00000000-0000-0000-0000-000000000000';
             const res = await fetch(`${TEST_CONFIG.BASE_URL}/items/${uuid}`, {
                 method: 'GET',
@@ -176,10 +177,7 @@ describeIntegration('Chaster Integration Tests', () => {
             expect(res.status).toBe(404);
         });
 
-        /**
-         * IT-08: Boundary - Invalid UUID format
-         */
-        it('IT-08: Get Invalid UUID', async () => {
+        it('should handle invalid UUID format', async () => {
             const res = await fetch(`${TEST_CONFIG.BASE_URL}/items/invalid-uuid-123`, {
                 method: 'GET',
                 headers: authHeader(authToken)
@@ -188,19 +186,20 @@ describeIntegration('Chaster Integration Tests', () => {
             expect([400, 404]).toContain(res.status);
         });
 
-        /**
-         * IT-09: Happy Path - Extend Lock
-         */
-        it('IT-09: Extend Lock Duration', async () => {
+        // =================================================================
+        // EXTEND Tests
+        // =================================================================
+
+        it('should extend lock duration', async () => {
             // First get current decryptAt
-            const getRes = await fetch(`${TEST_CONFIG.BASE_URL}/items/${createdItemId}`, {
+            const getRes = await fetch(`${TEST_CONFIG.BASE_URL}/items/${testItemId}`, {
                 headers: authHeader(authToken)
             });
             const originalData = await getRes.json() as ItemResponse;
             const originalDecryptAt = originalData.decryptAt;
 
             // Extend by 10 mins
-            const res = await fetch(`${TEST_CONFIG.BASE_URL}/items/${createdItemId}/extend`, {
+            const res = await fetch(`${TEST_CONFIG.BASE_URL}/items/${testItemId}/extend`, {
                 method: 'POST',
                 headers: authHeader(authToken),
                 body: JSON.stringify({ minutes: 10 })
@@ -214,42 +213,29 @@ describeIntegration('Chaster Integration Tests', () => {
             expect(newData.layerCount).toBeGreaterThan(1);
         });
 
-        /**
-         * IT-10: Boundary - Extend with Invalid Minutes
-         */
-        it('IT-10: Extend with Negative Minutes', async () => {
-            const res = await fetch(`${TEST_CONFIG.BASE_URL}/items/${createdItemId}/extend`, {
+        it('should fail to extend with negative minutes', async () => {
+            const res = await fetch(`${TEST_CONFIG.BASE_URL}/items/${testItemId}/extend`, {
                 method: 'POST',
                 headers: authHeader(authToken),
                 body: JSON.stringify({ minutes: -10 })
             });
-            if (res.status === 401) {
-                const err = await res.json();
-                console.log('IT-10 Debug:', res.status, JSON.stringify(err));
-            }
             expect(res.status).toBe(400);
         });
     });
 
     // =========================================================================
-    // 2.2 Auth & Admin
+    // Authentication Tests
     // =========================================================================
 
     describe('Authentication', () => {
-        /**
-         * AU-01: Security - Missing Token
-         */
-        it('AU-01: Missing Token', async () => {
+        it('should return 401 when token is missing', async () => {
             const res = await fetch(`${TEST_CONFIG.BASE_URL}/items`);
             expect(res.status).toBe(401);
             const data = await res.json() as ErrorResponse;
             expect(data.error.code).toBe('MISSING_TOKEN');
         });
 
-        /**
-         * AU-02: Security - Invalid Token
-         */
-        it('AU-02: Invalid Token', async () => {
+        it('should return 401 with invalid token', async () => {
             const res = await fetch(`${TEST_CONFIG.BASE_URL}/items`, {
                 headers: { 'Authorization': 'Bearer invalid-token-123' }
             });
