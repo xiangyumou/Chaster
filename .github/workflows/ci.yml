@@ -27,6 +27,16 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -57,7 +67,9 @@ jobs:
           DATABASE_URL: postgresql://chaster:chaster_password@localhost:5432/chaster
           TEST_TOKEN: tok_test_integration_fixed
           API_TOKEN: tok_test_integration_fixed
+
           RUN_INTEGRATION_TESTS: 1
+          REDIS_URL: redis://localhost:6379
         run: |
           # Start the app in the background
           npm run build
